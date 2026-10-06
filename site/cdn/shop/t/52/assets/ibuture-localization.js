@@ -277,15 +277,84 @@
       : `${localePrefix}/`;
   }
 
-  function navigate(language, country = null) {
-    const target = buildTargetPath(language, country);
-    if (target === window.location.pathname) {
+  function buildTargetHomePath(language, country = null) {
+    let localePrefix = "";
+
+    if (country) {
+      const regional = `${language}-${country.toLowerCase()}`;
+
+      if (REGIONAL_ROUTES.has(regional)) {
+        localePrefix = `/${regional}`;
+      }
+    }
+
+    if (!localePrefix && language !== "en") {
+      localePrefix = `/${language}`;
+    }
+
+    return localePrefix ? `${localePrefix}/` : "/";
+  }
+
+  function findAlternateTarget(language, country = null) {
+    const locales = country
+      ? [`${language}-${country}`, language]
+      : [language];
+    const alternateLinks = document.querySelectorAll(
+      'link[rel~="alternate"][hreflang][href]'
+    );
+
+    for (const locale of locales) {
+      const link = Array.from(alternateLinks).find(alternate =>
+        alternate.hreflang.toLowerCase() === locale.toLowerCase()
+      );
+
+      if (!link) {
+        continue;
+      }
+
+      try {
+        const destination = new URL(link.href, window.location.href);
+        const hostname = destination.hostname.toLowerCase();
+        const currentHostname = window.location.hostname.toLowerCase();
+
+        if (
+          hostname !== currentHostname &&
+          hostname !== "ibuture.com" &&
+          hostname !== "www.ibuture.com"
+        ) {
+          continue;
+        }
+
+        return destination;
+      } catch {
+        continue;
+      }
+    }
+
+    return null;
+  }
+
+  function navigate(language, country = null, useAlternate = false) {
+    const alternate = useAlternate
+      ? findAlternateTarget(language, country)
+      : null;
+    const target = alternate
+      ? alternate.pathname
+      : useAlternate
+        ? buildTargetHomePath(language, country)
+        : buildTargetPath(language, country);
+    const search = alternate?.search || window.location.search;
+    const hash = alternate?.hash || window.location.hash;
+    const destination = target + search + hash;
+
+    if (
+      destination ===
+      window.location.pathname + window.location.search + window.location.hash
+    ) {
       return;
     }
 
-    window.location.assign(
-      target + window.location.search + window.location.hash
-    );
+    window.location.assign(destination);
   }
 
   function installManualLanguageSelection() {
@@ -317,7 +386,8 @@
        */
       navigate(
         language,
-        current.regional ? current.country : null
+        current.regional ? current.country : null,
+        true
       );
     }, true);
   }

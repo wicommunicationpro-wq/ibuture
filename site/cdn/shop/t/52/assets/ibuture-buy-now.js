@@ -40,11 +40,14 @@
           localized_locale: localizedLocale
         }),
         method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        headers: { "Content-Type": "application/x-www-form-urlencoded", ...window.IBUTURE_MARKET_HEADERS() }
       });
       const json = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(json.message || json.code || "Impossible d'ajouter le produit au panier.");
-      window.location.href = "/fr-nl/checkout/";
+      (() => {
+  const root = window.location.pathname.split("/").filter(Boolean)[0] || "fr";
+  window.location.href = `/${root}/checkout/`;
+})();
     } catch (error) {
       console.error("[IBUTURE] Buy now:", error);
       document.documentElement.dispatchEvent(new CustomEvent("cart:error", { bubbles: true, detail: { error: error.message } }));

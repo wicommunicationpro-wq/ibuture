@@ -39,7 +39,8 @@
     if (!slug) return null;
     const response = await fetch(`${API}/products?slug=${encodeURIComponent(slug)}&per_page=1&_=${Date.now()}`, {
       credentials: "include",
-      cache: "no-store"
+      cache: "no-store",
+      headers: window.IBUTURE_MARKET_HEADERS()
     });
     if (!response.ok) throw new Error(`Product mapping failed: ${response.status}`);
     const payload = await response.json();

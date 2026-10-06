@@ -6587,7 +6587,7 @@ first.parentNode.insertBefore(script, first);
          <div class="ibuture-cart-summary__row ibuture-cart-summary__row--total"><span>Total</span><strong id="ibuture-cart-total"></strong></div>
          <div class="ibuture-cart-summary__coupon"><label class="visually-hidden" for="ibuture-cart-coupon">Bon de commande</label><input id="ibuture-cart-coupon" type="text" placeholder="Bon de commande" disabled><button class="button button--outline" type="button" disabled>Appliquer</button></div>
          <div class="ibuture-cart-summary__actions">
-          <a href="/fr-nl/checkout/" class="button button--xl"><span class="button__content">Commander</span></a>
+          <a href="/fr-nl/checkout/?locale=fr" class="button button--xl"><span class="button__content">Commander</span></a>
           <a href="/fr-nl/collections/tous-les-aspirateurs/" class="button button--xl button--outline"><span class="button__content">Continuer mes achats</span></a>
          </div>
          <div class="ibuture-cart-payment-note">Paiement sécurisé<div class="ibuture-cart-payment-note__marks"><span>Visa</span><span>Mastercard</span><span>PayPal</span><span>Shop Pay</span></div></div>
@@ -6614,7 +6614,8 @@ first.parentNode.insertBefore(script, first);
        try {
          const response = await fetch(API + "/cart?_=" + Date.now(), {
            credentials: "include",
-           cache: "no-store"
+           cache: "no-store",
+           headers: window.IBUTURE_MARKET_HEADERS()
          });
 
          if (!response.ok) {
@@ -6712,7 +6713,8 @@ first.parentNode.insertBefore(script, first);
            method: "POST",
            credentials: "include",
            headers: {
-             "Content-Type": "application/x-www-form-urlencoded"
+             "Content-Type": "application/x-www-form-urlencoded",
+             ...window.IBUTURE_MARKET_HEADERS()
            },
            body: new URLSearchParams({
              key: key,
@@ -6745,7 +6747,8 @@ first.parentNode.insertBefore(script, first);
            method: "POST",
            credentials: "include",
            headers: {
-             "Content-Type": "application/x-www-form-urlencoded"
+             "Content-Type": "application/x-www-form-urlencoded",
+             ...window.IBUTURE_MARKET_HEADERS()
            },
            body: new URLSearchParams({
              key: key
@@ -8025,5 +8028,6 @@ first.parentNode.insertBefore(script, first);
   </div>
   <script data-source-attribution="shopify.standard_actions" src="../storefront/standard-actions.js" type="module">
   </script>
- </body>
+   <script src="/cdn/shop/t/52/assets/ibuture-market.js"></script>
+</body>
 </html>

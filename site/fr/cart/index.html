@@ -698,6 +698,7 @@ Shopify.SignInWithShop.User.recognized = false;
    window.performance && window.performance.mark && window.performance.mark('shopify.content_for_header.end');
   </script>
   <link href="../../cdn/shop/t/52/assets/theme.css" media="all" rel="stylesheet" type="text/css">
+  <link href="../../cdn/shop/t/52/assets/ibuture-cart-checkout.css" media="all" rel="stylesheet" type="text/css">
    <script type="application/ld+json">
     {
   "@context": "https://schema.org/",
@@ -6552,33 +6553,43 @@ first.parentNode.insertBefore(script, first);
   </div>
   <!-- END sections: overlay-group -->
   <main class="anchor" id="main" role="main">
-   <section class="shopify-section shopify-section--main-cart" id="shopify-section-template--20277853159679__main">
+  <section class="shopify-section shopify-section--main-cart ibuture-cart-page" id="shopify-section-template--20277853159679__main">
+   <div class="section section--padding">
     <div class="container">
-     <div class="empty-state">
+    <div class="section-stack">
+     <div class="prose"><h1 class="h2">Votre panier</h1></div>
+     <div id="ibuture-cart-loading" class="prose"><p>Chargement du panier...</p></div>
+     <div id="ibuture-cart-empty" class="empty-state" hidden>
       <div class="empty-state__icon-wrapper">
-       <svg class="icon icon-cart" focusable="false" height="32" role="presentation" stroke-width="1" viewbox="0 0 22 22" width="32">
-        <path d="M9.182 18.454a.91.91 0 1 1-1.818 0 .91.91 0 0 1 1.818 0Zm7.272 0a.91.91 0 1 1-1.818 0 .91.91 0 0 1 1.819 0Z" fill="currentColor">
-        </path>
-        <path d="M5.336 6.636H21l-3.636 8.182H6.909L4.636 3H1m8.182 15.454a.91.91 0 1 1-1.818 0 .91.91 0 0 1 1.818 0Zm7.272 0a.91.91 0 1 1-1.818 0 .91.91 0 0 1 1.819 0Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-        </path>
-       </svg>
-       <span class="count-bubble count-bubble--lg">
-        0
-       </span>
+      <svg class="icon icon-cart" focusable="false" height="32" role="presentation" stroke-width="1" viewbox="0 0 22 22" width="32">
+       <path d="M9.182 18.454a.91.91 0 1 1-1.818 0 .91.91 0 0 1 1.818 0Zm7.272 0a.91.91 0 1 1-1.818 0 .91.91 0 0 1 1.819 0Z" fill="currentColor"></path>
+       <path d="M5.336 6.636H21l-3.636 8.182H6.909L4.636 3H1m8.182 15.454a.91.91 0 1 1-1.818 0 .91.91 0 0 1 1.818 0Zm7.272 0a.91.91 0 1 1-1.818 0 .91.91 0 0 1 1.819 0Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
       </div>
       <div class="prose">
-       <p class="h4">
-        Votre panier est vide
-       </p>
-       <a class="button button--xl button--outline" href="../collections/all/index.html">
-        <span class="button__content">
-         Continuer mes achats
-        </span>
-       </a>
+      <p class="h4">Panier vide</p>
+      <a class="button button--xl button--outline" href="/fr/collections/all/"><span class="button__content">Continuer mes achats</span></a>
+      </div>
+     </div>
+     <div id="ibuture-cart-content" hidden>
+      <div class="ibuture-cart-layout">
+      <div class="ibuture-cart-products">
+       <div class="ibuture-cart-products__head"><span>Produit</span><span>Quantité</span><span>Total</span></div>
+       <div id="ibuture-cart-items"></div>
+      </div>
+      <aside class="ibuture-cart-summary">
+       <h2 class="h3">Résumé de la commande</h2>
+       <div class="ibuture-cart-summary__row"><span>Sous-total</span><strong id="ibuture-cart-subtotal"></strong></div>
+       <div class="ibuture-cart-summary__row ibuture-cart-summary__row--total"><span>Total</span><strong id="ibuture-cart-total"></strong></div>
+       <div class="ibuture-cart-summary__actions"><a href="/fr/collections/all/" class="button button--xl button--outline"><span class="button__content">Continuer mes achats</span></a></div>
+                <div class="ibuture-cart-summary__actions"><a href="/fr/checkout/" class="button button--xl"><span class="button__content">Passer au paiement</span></a><a href="/fr/collections/all/" class="button button--xl button--outline"><span class="button__content">Continuer mes achats</span></a></div>
+      </aside>
       </div>
      </div>
     </div>
-   </section>
+    </div>
+   </div>
+  </section>
    <section class="shopify-section shopify-section--recently-viewed-products" id="shopify-section-template--20277853159679__recently_viewed_products_yyzhmc">
     <style>
      #shopify-section-template--20277853159679__recently_viewed_products_yyzhmc {
@@ -7865,5 +7876,7 @@ first.parentNode.insertBefore(script, first);
   </div>
   <script data-source-attribution="shopify.standard_actions" src="../../storefront/standard-actions.js" type="module">
   </script>
- </body>
+  <script src="../../cdn/shop/t/52/assets/ibuture-cart-page.js" defer></script>
+   <script src="/cdn/shop/t/52/assets/ibuture-market.js"></script>
+</body>
 </html>
