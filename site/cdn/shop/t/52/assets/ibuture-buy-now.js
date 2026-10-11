@@ -6,6 +6,7 @@
     if (!form || pending) return;
     try {
       if (form.__wooMappingPromise && !form.__wooMappingReady) await form.__wooMappingPromise;
+      if (form.__wooMappingError) throw form.__wooMappingError;
       const productId = parseInt(form.querySelector('input[name="product-id"]')?.value || "0", 10);
       const variationId = parseInt(form.querySelector('input[name="id"]')?.value || "0", 10);
       const quantity = Math.max(1, parseInt(form.querySelector('[name="quantity"]')?.value || "1", 10));
@@ -22,6 +23,7 @@
       const localizedName =
         localizedVariant?.name ||
         form.closest("product-info")?.querySelector("h1")?.textContent?.trim() ||
+        form.closest("product-card")?.querySelector(".product-card__title")?.textContent?.trim() ||
         document.querySelector("h1")?.textContent?.trim() ||
         "";
 
@@ -44,6 +46,12 @@
       });
       const json = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(json.message || json.code || "Impossible d'ajouter le produit au panier.");
+      if (json.success !== true) throw new Error(json.message || json.code || "L'ajout au panier a été refusé.");
+
+      const addedItem = (Array.isArray(json.items) ? json.items : []).find(
+        (item) => String(item?.key) === String(json.added_key)
+      );
+      if (!addedItem) throw new Error("Le produit ajouté est introuvable dans le panier.");
       (() => {
   const root = window.location.pathname.split("/").filter(Boolean)[0] || "fr";
   window.location.href = `/${root}/checkout/`;
@@ -55,12 +63,17 @@
   }
 
   window.addEventListener("click", (event) => {
-    const shopButton = event.target.closest?.("shopify-accelerated-checkout, .shopify-payment-button");
+    const shopButton = event.target.closest?.(
+      "shopify-accelerated-checkout, .shopify-payment-button, product-card a.product-card__button--primary"
+    );
     if (!shopButton) return;
-    const form = shopButton.closest?.('form[is="product-form"]');
+    const form =
+      shopButton.closest?.('form[is="product-form"]') ||
+      shopButton.closest?.("product-card")?.querySelector?.('form[is="product-form"]');
     if (!form) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    buyNow(form);
+    shopButton.setAttribute("aria-busy", "true");
+    buyNow(form).finally(() => shopButton.removeAttribute("aria-busy"));
   }, true);
 })();

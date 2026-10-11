@@ -10,6 +10,8 @@
   function productSlug(form) {
     const picker = document.querySelector(`variant-picker[form-id="${CSS.escape(getFormId(form))}"]`);
     if (picker?.getAttribute("handle")) return picker.getAttribute("handle");
+    const cardHandle = form.closest("product-card")?.getAttribute("handle");
+    if (cardHandle) return cardHandle;
     const match = window.location.pathname.match(/\/products\/([^/]+)/);
     return match ? decodeURIComponent(match[1]) : "";
   }
@@ -17,22 +19,28 @@
   function syncForm(form, product) {
     const productIdInput = form.querySelector('input[name="product-id"]');
     const variationIdInput = form.querySelector('input[name="id"]');
-    if (!productIdInput || !product?.id) return;
+    if (!productIdInput || product?.id === undefined || product?.id === null || !Array.isArray(product.variations)) return false;
 
     productIdInput.value = String(product.id);
-    if (!variationIdInput) return;
+    if (!variationIdInput) return true;
 
     const shopifyId = String(variationIdInput.value || "");
-    const wooVariation = (product.variations || []).find((variation) =>
-      String(variation.shopify_variant_id || "") === shopifyId
+    const wooVariation = product.variations.find((variation) =>
+      String(variation.shopify_variant_id || "") === shopifyId ||
+      String(variation.id || "") === shopifyId
     );
 
     if (wooVariation) {
       variationIdInput.value = String(wooVariation.id);
-      return;
+      return true;
     }
 
-    if (!product.variations?.length) variationIdInput.value = "0";
+    if (!product.variations.length) {
+      variationIdInput.value = "0";
+      return true;
+    }
+
+    return false;
   }
 
   async function loadProduct(slug) {
@@ -192,19 +200,30 @@
     const variationIdInput = form.querySelector('input[name="id"]');
 
     form.__wooMappingReady = false;
+    form.__wooSubmitPending = false;
+    form.__wooMappingError = null;
 
     if (variationIdInput) {
       variationIdInput.addEventListener("change", () => {
-        if (form.__wooProduct) syncForm(form, form.__wooProduct);
+        if (!form.__wooProduct) return;
+        form.__wooMappingReady = syncForm(form, form.__wooProduct);
+        form.__wooMappingError = form.__wooMappingReady
+          ? null
+          : new Error("Correspondance de variante WooCommerce introuvable.");
       });
     }
 
     form.__wooMappingPromise = loadProduct(slug).then((product) => {
-      if (!product) return;
+      if (!product) throw new Error(`Produit WooCommerce introuvable pour le handle « ${slug} ».`);
       form.__wooProduct = product;
-      syncForm(form, product);
+      if (!syncForm(form, product)) {
+        throw new Error("Correspondance de variante WooCommerce introuvable.");
+      }
       form.__wooMappingReady = true;
+      form.__wooMappingError = null;
+      return true;
     }).catch((error) => {
+      form.__wooMappingError = error;
       console.error("[IBUTURE] Product mapping:", error);
       throw error;
     });
@@ -213,9 +232,28 @@
       if (form.__wooMappingReady) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      form.__wooMappingPromise
-        .then(() => form.requestSubmit(event.submitter))
-        .catch(() => {});
+      if (form.__wooSubmitPending) return;
+
+      form.__wooSubmitPending = true;
+      form.__wooMappingPromise.then((mapped) => {
+        if (!mapped || !form.__wooMappingReady) {
+          const error = form.__wooMappingError || new Error("Le mapping WooCommerce du produit a échoué.");
+          document.documentElement.dispatchEvent(new CustomEvent("cart:error", {
+            bubbles: true,
+            detail: { error: error.message }
+          }));
+          return;
+        }
+
+        form.requestSubmit(event.submitter);
+      }).catch((error) => {
+        document.documentElement.dispatchEvent(new CustomEvent("cart:error", {
+          bubbles: true,
+          detail: { error: error.message }
+        }));
+      }).finally(() => {
+        form.__wooSubmitPending = false;
+      });
     }, true);
   });
 })();
