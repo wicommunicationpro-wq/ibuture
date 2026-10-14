@@ -930,6 +930,18 @@ function ibuture_api_checkout_summary() {
         'discount_total' => (float) WC()->cart->get_discount_total(),
         'discount_tax' => (float) WC()->cart->get_discount_tax(),
         'tax_total' => (float) WC()->cart->get_total_tax(),
+        'needs_shipping' => WC()->cart->needs_shipping(),
+        'applied_coupons' => WC()->cart->get_applied_coupons(),
+        'fees' => array_map(
+            static function ( $fee ) {
+                return [
+                    'name'  => (string) $fee->name,
+                    'total' => (float) $fee->total,
+                    'tax'   => (float) $fee->tax,
+                ];
+            },
+            WC()->cart->get_fees()
+        ),
         'total' => (float) WC()->cart->get_total('edit'),
         'currency' => get_woocommerce_currency(),
     ];
@@ -992,6 +1004,14 @@ function ibuture_api_checkout_apply_coupon(WP_REST_Request $request) {
     $code = isset($payload['code']) ? wc_format_coupon_code($payload['code']) : '';
     if ($code === '') {
         return new WP_Error('coupon_required', 'Le code coupon est obligatoire.', ['status' => 400]);
+    }
+
+    if (WC()->cart->has_discount($code)) {
+        return new WP_Error(
+            'coupon_already_applied',
+            'Ce coupon est déjà appliqué.',
+            ['status' => 400]
+        );
     }
 
     wc_clear_notices();
@@ -1083,6 +1103,36 @@ function ibuture_api_checkout_payments(WP_REST_Request $request) {
     ]);
 }
 
+function ibuture_api_checkout_payment_method(WP_REST_Request $request) {
+    $initialized = ibuture_api_checkout_init();
+    if (is_wp_error($initialized)) {
+        return $initialized;
+    }
+
+    $payload = ibuture_api_checkout_payload($request);
+    $payment_method = isset($payload['payment_method'])
+        ? sanitize_text_field($payload['payment_method'])
+        : '';
+    $gateways = WC()->payment_gateways()->get_available_payment_gateways();
+
+    if ($payment_method === '' || !isset($gateways[$payment_method])) {
+        return new WP_Error(
+            'invalid_payment_method',
+            'Le moyen de paiement demandé n’est pas disponible.',
+            ['status' => 400]
+        );
+    }
+
+    WC()->session->set('chosen_payment_method', $payment_method);
+    WC()->cart->calculate_totals();
+    WC()->cart->set_session();
+
+    return rest_ensure_response([
+        'success' => true,
+        'cart' => ibuture_api_checkout_summary(),
+    ]);
+}
+
 add_action('woocommerce_checkout_create_order_line_item', function ($item, $cart_item_key, $values, $order) {
     if (!empty($values['ibuture_localized_name'])) {
         $item->set_name((string) $values['ibuture_localized_name']);
@@ -1131,6 +1181,8 @@ function ibuture_api_checkout_order(WP_REST_Request $request) {
             ['status' => 400]
         );
     }
+
+    WC()->session->set('chosen_payment_method', $payment_method);
 
     $shipping_method = isset($payload['shipping_method'])
         ? sanitize_text_field($payload['shipping_method'])
@@ -1266,6 +1318,12 @@ add_action('rest_api_init', function () {
         'methods' => WP_REST_Server::READABLE,
         'callback' => 'ibuture_api_checkout_payments',
         'permission_callback' => '__return_true',
+    ]);
+
+    register_rest_route('ibuture/v1', '/checkout/payment-method', [
+        'methods' => WP_REST_Server::CREATABLE,
+        'callback' => 'ibuture_api_checkout_payment_method',
+        'permission_callback' => 'ibuture_api_checkout_permission',
     ]);
 
     register_rest_route('ibuture/v1', '/checkout/order', [
