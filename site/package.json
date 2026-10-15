@@ -1,0 +1,6 @@
+{
+  "name": "ibuture-mirror",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test \"api/wp-json/ibuture/__tests__/*.test.js\"" }
+}
