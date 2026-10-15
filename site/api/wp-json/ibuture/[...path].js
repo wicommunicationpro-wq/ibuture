@@ -93,7 +93,9 @@ export default async function handler(req, res) {
     }
 
     // (4) URL amont + query conservée
-    const upstreamUrl = buildUpstreamUrl(rest, req.url);
+    const requestUrl = new URL(req.url || "/", "https://vercel.internal");
+    requestUrl.searchParams.delete("path");
+    const upstreamUrl = buildUpstreamUrl(rest, requestUrl.pathname + requestUrl.search);
 
     // (5) En-têtes requête (liste blanche) — relaie session, sans auth WP
     const forwardHeaders = {};
