@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html dir="ltr" lang="fr">
+<html dir="ltr" lang="de">
  <head>
   <meta content="b06nh8n0w0so0gevxzfsaj1bdu50wi" name="facebook-domain-verification"/>
   <!-- Hotjar Tracking Code for Site 5050974 (name missing) -->
@@ -31,7 +31,7 @@
   </title>
   <meta content="Buture focuses on providing high-performance vacuum cleaners and reliable jump starters. Explore our product range to enhance your home cleaning and auto maintenance experience." name="description"/>
   <link href="index.html" rel="canonical"/>
-  <base href="/fr-nl/"/>
+  <base href="/de-de/"/>
   <link href="../cdn/shop/files/BUTURE-logo-2_2.png" rel="shortcut icon"/>
   <link href="../cdn/shop/files/BUTURE-logo-2_2.png" rel="apple-touch-icon"/>
   <link href="../index.html" rel="preconnect"/>
@@ -6545,76 +6545,82 @@ first.parentNode.insertBefore(script, first);
   <!-- END sections: overlay-group -->
   <main class="anchor" id="main" role="main">
    <section class="shopify-section ibuture-checkout-page">
+    <style>
+     #ibuture-checkout-content[hidden] { display: none !important; }
+     @media screen and (max-width: 767px) {
+      #ibuture-checkout-content { grid-template-columns: minmax(0, 1fr) !important; }
+     }
+    </style>
     <div class="section section--padding">
      <div class="container">
       <div class="section-stack">
        <div class="prose">
-        <h1 class="h2">Finaliser la commande</h1>
-        <p id="ibuture-checkout-status" role="status">Chargement de votre commande...</p>
+        <h1 class="h2">Bestellung abschließen</h1>
+        <p id="ibuture-checkout-status" role="status">Bestellung wird geladen...</p>
        </div>
 
        <div id="ibuture-checkout-error" class="banner banner--error" role="alert" hidden></div>
        <div id="ibuture-checkout-empty" class="empty-state" hidden>
         <div class="prose">
-         <p class="h5">Votre panier est vide</p>
-         <a class="button button--xl button--outline" href="/de-de/collections/alle-staubsauger/"><span class="button__content">Continuer mes achats</span></a>
+         <p class="h5">Ihr Warenkorb ist leer</p>
+         <a class="button button--xl button--outline" href="/de-de/collections/alle-staubsauger/"><span class="button__content">Weiter einkaufen</span></a>
         </div>
        </div>
 
        <div id="ibuture-checkout-content" hidden style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:3rem;align-items:start;">
         <div>
          <form id="ibuture-customer-form" class="prose" novalidate>
-          <h2 class="h3">Informations client</h2>
+          <h2 class="h3">Kontaktdaten</h2>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;">
-           <label>Prénom<input required name="first_name" autocomplete="given-name"></label>
-           <label>Nom<input required name="last_name" autocomplete="family-name"></label>
-           <label>Email<input required type="email" name="email" autocomplete="email"></label>
-           <label>Téléphone<input required type="tel" name="phone" autocomplete="tel"></label>
+           <label>Vorname<input required name="first_name" autocomplete="given-name"></label>
+           <label>Nachname<input required name="last_name" autocomplete="family-name"></label>
+           <label>E-Mail<input required type="email" name="email" autocomplete="email"></label>
+           <label>Telefon<input required type="tel" name="phone" autocomplete="tel"></label>
           </div>
-          <button class="button button--xl" type="submit"><span class="button__content">Continuer</span></button>
+          <button class="button button--xl" type="submit"><span class="button__content">Kontaktdaten speichern</span></button>
          </form>
 
-         <form id="ibuture-shipping-form" class="prose" hidden novalidate style="margin-top:3rem;">
-          <h2 class="h3">Adresse de livraison</h2>
+         <form id="ibuture-shipping-form" class="prose" novalidate style="margin-top:3rem;">
+          <h2 class="h3">Lieferadresse</h2>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;">
-           <label>Prénom<input required name="first_name" autocomplete="shipping given-name"></label>
-           <label>Nom<input required name="last_name" autocomplete="shipping family-name"></label>
-           <label style="grid-column:1/-1;">Adresse<input required name="address_1" autocomplete="shipping address-line1"></label>
-           <label>Ville<input required name="city" autocomplete="shipping address-level2"></label>
-           <label>Région / État<input name="state" autocomplete="shipping address-level1"></label>
-           <label>Code postal<input required name="postcode" autocomplete="shipping postal-code"></label>
-           <label>Pays<select required id="ibuture-country" name="country" autocomplete="shipping country"></select></label>
+           <label>Vorname<input required name="first_name" autocomplete="shipping given-name"></label>
+           <label>Nachname<input required name="last_name" autocomplete="shipping family-name"></label>
+           <label style="grid-column:1/-1;">Straße und Hausnummer<input required name="address_1" autocomplete="shipping address-line1"></label>
+           <label>Ort<input required name="city" autocomplete="shipping address-level2"></label>
+           <label>Bundesland<input name="state" autocomplete="shipping address-level1"></label>
+           <label>Postleitzahl<input required name="postcode" autocomplete="shipping postal-code"></label>
+           <label>Land<select required id="ibuture-country" name="country" autocomplete="shipping country"></select></label>
           </div>
-          <button class="button button--xl" type="submit"><span class="button__content">Continuer</span></button>
+          <button class="button button--xl" type="submit"><span class="button__content">Adresse speichern und Versandkosten berechnen</span></button>
          </form>
 
-         <section id="ibuture-shipping-section" class="prose" hidden style="margin-top:3rem;">
-          <h2 class="h3">Méthode de livraison</h2>
+         <section id="ibuture-shipping-section" class="prose" style="margin-top:3rem;">
+          <h2 class="h3">Versandart</h2>
           <div id="ibuture-shipping-methods"></div>
-            <button id="ibuture-confirm-shipping" class="button button--xl" type="button" style="margin-top:1rem;"><span class="button__content">Continuer</span></button>
+            <button id="ibuture-confirm-shipping" class="button button--xl" type="button" style="margin-top:1rem;"><span class="button__content">Versandart bestätigen</span></button>
          </section>
 
-         <section id="ibuture-payment-section" class="prose" hidden style="margin-top:3rem;">
-          <h2 class="h3">Méthode de paiement</h2>
-          <div id="ibuture-payment-methods"></div>
-          <button id="ibuture-place-order" class="button button--xl" type="button" disabled style="margin-top:1rem;"><span class="button__content">Commander</span></button>
+         <section id="ibuture-payment-section" class="prose" style="margin-top:3rem;">
+          <h2 class="h3">Zahlungsmethode</h2>
+          <div id="ibuture-payment-methods"><p>Bitte bestätigen Sie zuerst Ihre Versandart.</p></div>
+          <button id="ibuture-place-order" class="button button--xl" type="button" disabled style="margin-top:1rem;"><span class="button__content">Jetzt zahlungspflichtig bestellen</span></button>
          </section>
         </div>
 
         <aside id="ibuture-checkout-summary" style="border:1px solid rgba(0,0,0,.12);padding:1.5rem;">
-         <h2 class="h3">Récapitulatif</h2>
+         <h2 class="h3">Bestellübersicht</h2>
          <div id="ibuture-checkout-items"></div>
          <div id="ibuture-checkout-totals" style="margin-top:1.5rem;"></div>
          <form id="ibuture-coupon-form" style="display:flex;gap:.75rem;margin-top:1.5rem;">
-          <label style="flex:1;">Code promo<input name="code" autocomplete="off"></label>
-          <button class="button button--outline" type="submit"><span class="button__content">Appliquer</span></button>
+          <label style="flex:1;">Gutscheincode<input name="code" autocomplete="off"></label>
+          <button class="button button--outline" type="submit"><span class="button__content">Anwenden</span></button>
          </form>
-         <button id="ibuture-remove-coupon" class="button button--sm button--outline" type="button" hidden style="margin-top:.75rem;">Supprimer le coupon</button>
+         <button id="ibuture-remove-coupon" class="button button--sm button--outline" type="button" hidden style="margin-top:.75rem;">Gutschein entfernen</button>
         </aside>
        </div>
 
        <section id="ibuture-checkout-success" class="empty-state" hidden>
-        <div class="prose"><h2 class="h3">Commande confirmée</h2><p id="ibuture-order-message"></p><a class="button button--xl" href="/de-de/collections/alle-staubsauger/"><span class="button__content">Continuer mes achats</span></a></div>
+        <div class="prose"><h2 class="h3">Bestellung erfasst</h2><p id="ibuture-order-message"></p><a class="button button--xl" href="/de-de/collections/alle-staubsauger/"><span class="button__content">Weiter einkaufen</span></a></div>
        </section>
       </div>
      </div>
@@ -6652,11 +6658,11 @@ first.parentNode.insertBefore(script, first);
        pl: "wszystkie-odkurzacze"
      };
      const checkoutMarketPath = String(checkoutPath[0] || "fr").toLowerCase();
-     const returnUrl = checkoutLocales.includes(checkoutMarketPath)
+     const returnUrl = (checkoutLocales.includes(checkoutMarketPath) || checkoutMarketPath === "de-de")
        ? `/${checkoutMarketPath}/collections/${collectionSlugs[checkoutLocale] || collectionSlugs.fr}/`
        : "/fr/collections/tous-les-aspirateurs/";
      const API = "/wp-json/ibuture/v1";
-    const state = { nonce: null, checkout: null, shippingData: null, shippingMethod: "", paymentMethod: "", couponCode: "", couponSubmitting: false, shippingConfirmed: false, submitted: false };
+    const state = { nonce: null, checkout: null, shippingData: null, shippingMethod: "", paymentMethod: "", couponCode: "", couponSubmitting: false, customerSaved: false, addressSaved: false, shippingConfirmed: false, customerSubmitting: false, addressSubmitting: false, shippingSubmitting: false, paymentSubmitting: false, submitted: false };
      const $ = (selector) => document.querySelector(selector);
      const errorBox = $("#ibuture-checkout-error");
 
@@ -6732,7 +6738,8 @@ first.parentNode.insertBefore(script, first);
        const countryCodes = "AF AX AL DZ AS AD AO AI AQ AG AR AM AW AU AT AZ BS BH BD BB BY BE BZ BJ BM BT BO BQ BA BW BV BR IO BN BG BF BI CV KH CM CA KY CF TD CL CN CX CC CO KM CG CD CK CR CI HR CU CW CY CZ DK DJ DM DO EC EG SV GQ ER EE SZ ET FK FO FJ FI FR GF PF TF GA GM GE DE GH GI GR GL GD GP GU GT GG GN GW GY HT HM VA HN HK HU IS IN ID IR IQ IE IM IL IT JM JP JE JO KZ KE KI KP KR KW KG LA LV LB LS LR LY LI LT LU MO MG MW MY MV ML MT MH MQ MR MU YT MX FM MD MC MN ME MS MA MZ MM NA NR NP NL NC NZ NI NE NG NU NF MK MP NO OM PK PW PS PA PG PY PE PH PN PL PT PR QA RE RO RU RW BL SH KN LC MF PM VC WS SM ST SA SN RS SC SL SG SX SK SI SB SO ZA GS SS ES LK SD SR SJ SE CH SY TW TJ TZ TH TL TG TK TO TT TN TR TM TC TV UG UA AE GB US UM UY UZ VU VE VN VG VI WF EH YE ZM ZW".split(" ");
       let displayNames = null;
       try { if (typeof Intl !== "undefined" && Intl.DisplayNames) displayNames = new Intl.DisplayNames([checkoutLocale], { type: "region" }); } catch (_) {}
-       countrySelect.innerHTML = countryCodes.map((code) => `<option value="${code}"${code === "BJ" ? " selected" : ""}>${escapeHtml(displayNames?.of(code) || code)}</option>`).join("");
+       countrySelect.innerHTML = countryCodes.map((code) => `<option value="${code}"${code === "DE" ? " selected" : ""}>${escapeHtml(displayNames?.of(code) || code)}</option>`).join("");
+       countrySelect.value = "DE";
      }
      function value(data, names) { for (const name of names) if (data?.[name] !== undefined && data[name] !== null) return data[name]; return ""; }
      function displayAmount(item) { return value(item, ["line_total", "total", "price", "formatted_total", "formatted_price"]); }
@@ -6773,18 +6780,134 @@ first.parentNode.insertBefore(script, first);
       $("#ibuture-shipping-methods").innerHTML = methods.length ? methods.map((method, index) => { const id = value(method, ["id", "rate_id", "method_id"]) || String(index); const selected = state.shippingMethod ? id === state.shippingMethod : index === 0; return `<label style="display:flex;justify-content:space-between;gap:1rem;padding:.75rem;border:1px solid rgba(0,0,0,.12);margin-top:.5rem;"><span><input type="radio" name="shipping_method" value="${escapeHtml(id)}" ${selected ? "checked" : ""}> ${escapeHtml(value(method, ["name", "label", "title"]))}</span><strong>${escapeHtml(value(method, ["amount", "cost", "price", "formatted_cost"]))}</strong></label>`; }).join("") : `<p>${strings.noShipping}</p>`;
      }
      async function refreshCheckout() { state.checkout = await request("/checkout?_=" + Date.now()); renderSummary(state.checkout); renderShipping(state.checkout); }
-    async function submitForm(event, path, nextSection) { event.preventDefault(); clearError(); const form = event.currentTarget; if (!form.checkValidity()) { form.reportValidity(); showError(strings.required); return; } const button = form.querySelector("button[type=submit]"); if (button) button.disabled = true; try { await getNonce(); if (path === "/checkout/shipping") { state.shippingData = formData(form); await request("/checkout/customer", { method: "POST", headers: authHeaders(), body: JSON.stringify(state.shippingData) }); await refreshCheckout(); form.hidden = true; $(nextSection).hidden = false; return; } await request(path, { method: "POST", headers: authHeaders(), body: JSON.stringify(formData(form)) }); form.hidden = true; $(nextSection).hidden = false; } catch (error) { showError(error.message); } finally { if (button) button.disabled = false; } }
-    async function syncShippingMethod(shippingMethod) { const radios = $("#ibuture-shipping-methods").querySelectorAll('input[name="shipping_method"]'); radios.forEach((radio) => { radio.disabled = true; }); const previousMethod = state.shippingMethod; try { await getNonce(); const result = await request("/checkout/shipping", { method: "POST", headers: authHeaders(), body: JSON.stringify({ shipping_method: shippingMethod }) }); state.shippingMethod = shippingMethod; state.checkout = { ...state.checkout, cart: result.cart }; renderSummary(state.checkout); } catch (error) { state.shippingMethod = previousMethod; if (state.checkout) renderShipping(state.checkout); showError(error.message); } finally { radios.forEach((radio) => { radio.disabled = false; }); } }
-    async function syncPaymentMethod(paymentMethod) { const radios = $("#ibuture-payment-methods").querySelectorAll('input[name="payment_method"]'); radios.forEach((radio) => { radio.disabled = true; }); try { await getNonce(); const result = await request("/checkout/payment-method", { method: "POST", headers: authHeaders(), body: JSON.stringify({ payment_method: paymentMethod }) }); state.paymentMethod = paymentMethod; state.checkout = { ...state.checkout, cart: result.cart }; renderSummary(state.checkout); } catch (error) { const previousRadio = Array.from(radios).find((radio) => radio.value === state.paymentMethod); if (previousRadio) previousRadio.checked = true; showError(error.message); } finally { radios.forEach((radio) => { radio.disabled = false; }); } }
-    async function confirmShipping() { clearError(); const selected = $("#ibuture-shipping-methods input[name=shipping_method]:checked"); if (!selected || !state.shippingData) { showError(strings.selectShipping); return; } const button = $("#ibuture-confirm-shipping"); button.disabled = true; try { await getNonce(); const result = await request("/checkout/shipping", { method: "POST", headers: authHeaders(), body: JSON.stringify({ billing: state.shippingData, shipping: state.shippingData, shipping_method: selected.value }) }); state.shippingMethod = selected.value; state.shippingConfirmed = true; $("#ibuture-place-order").disabled = false; state.checkout = { ...state.checkout, cart: result.cart }; renderSummary(state.checkout); await refreshCheckout(); $("#ibuture-payment-section").hidden = false; renderPayments(await request("/checkout/payment-methods?_=" + Date.now())); const selectedPayment = $("#ibuture-payment-methods input[name=payment_method]:checked"); if (selectedPayment) await syncPaymentMethod(selectedPayment.value); } catch (error) { showError(error.message); } finally { button.disabled = false; } }
+    async function submitForm(event, path) {
+      event.preventDefault();
+      clearError();
+      const form = event.currentTarget;
+      if (!form.checkValidity()) { form.reportValidity(); showError(strings.required); return; }
+      const isAddress = path === "/checkout/shipping";
+      if (isAddress ? state.addressSubmitting : state.customerSubmitting) return;
+      const button = form.querySelector("button[type=submit]");
+      const controls = form.querySelectorAll("input, select, button");
+      controls.forEach((control) => { control.disabled = true; });
+      if (isAddress) state.addressSubmitting = true;
+      else state.customerSubmitting = true;
+      try {
+        await getNonce();
+        const data = formData(form);
+        if (isAddress) {
+          state.shippingData = data;
+          await request("/checkout/customer", { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
+          await refreshCheckout();
+          state.addressSaved = true;
+          state.shippingConfirmed = false;
+          state.shippingMethod = "";
+          state.paymentMethod = "";
+          $("#ibuture-confirm-shipping").disabled = false;
+          $("#ibuture-place-order").disabled = true;
+        } else {
+          await request(path, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
+          state.customerSaved = true;
+          $("#ibuture-place-order").disabled = !state.addressSaved || !state.shippingConfirmed || !state.paymentMethod;
+        }
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        if (isAddress) state.addressSubmitting = false;
+        else state.customerSubmitting = false;
+        controls.forEach((control) => { control.disabled = false; });
+        if (button) button.disabled = false;
+      }
+    }
+    async function syncShippingMethod(shippingMethod) {
+      if (state.shippingSubmitting || !state.addressSaved) return;
+      const radios = $("#ibuture-shipping-methods").querySelectorAll('input[name="shipping_method"]');
+      radios.forEach((radio) => { radio.disabled = true; });
+      const previousMethod = state.shippingMethod;
+      state.shippingConfirmed = false;
+      $("#ibuture-place-order").disabled = true;
+      state.shippingSubmitting = true;
+      try {
+        await getNonce();
+        const result = await request("/checkout/shipping", { method: "POST", headers: authHeaders(), body: JSON.stringify({ shipping_method: shippingMethod }) });
+        state.shippingMethod = shippingMethod;
+        state.shippingConfirmed = true;
+        state.checkout = { ...state.checkout, cart: result.cart };
+        renderSummary(state.checkout);
+      } catch (error) {
+        state.shippingMethod = previousMethod;
+        state.shippingConfirmed = false;
+        if (state.checkout) renderShipping(state.checkout);
+        showError(error.message);
+      } finally {
+        state.shippingSubmitting = false;
+        radios.forEach((radio) => { radio.disabled = false; });
+        $("#ibuture-place-order").disabled = !state.customerSaved || !state.addressSaved || !state.shippingConfirmed || !state.paymentMethod;
+      }
+    }
+    async function syncPaymentMethod(paymentMethod) {
+      if (state.paymentSubmitting) return;
+      const radios = $("#ibuture-payment-methods").querySelectorAll('input[name="payment_method"]');
+      radios.forEach((radio) => { radio.disabled = true; });
+      state.paymentSubmitting = true;
+      $("#ibuture-place-order").disabled = true;
+      try {
+        await getNonce();
+        const result = await request("/checkout/payment-method", { method: "POST", headers: authHeaders(), body: JSON.stringify({ payment_method: paymentMethod }) });
+        state.paymentMethod = paymentMethod;
+        state.checkout = { ...state.checkout, cart: result.cart };
+        renderSummary(state.checkout);
+      } catch (error) {
+        const previousRadio = Array.from(radios).find((radio) => radio.value === state.paymentMethod);
+        if (previousRadio) previousRadio.checked = true;
+        showError(error.message);
+      } finally {
+        state.paymentSubmitting = false;
+        radios.forEach((radio) => { radio.disabled = false; });
+        $("#ibuture-place-order").disabled = !state.customerSaved || !state.addressSaved || !state.shippingConfirmed || !state.paymentMethod;
+      }
+    }
+    async function confirmShipping() {
+      clearError();
+      if (state.shippingSubmitting || !state.customerSaved || !state.addressSaved) { showError(strings.confirmShipping); return; }
+      const selected = $("#ibuture-shipping-methods input[name=shipping_method]:checked");
+      if (!selected || !state.shippingData) { showError(strings.selectShipping); return; }
+      const button = $("#ibuture-confirm-shipping");
+      button.disabled = true;
+      state.shippingSubmitting = true;
+      state.shippingConfirmed = false;
+      $("#ibuture-place-order").disabled = true;
+      try {
+        await getNonce();
+        const result = await request("/checkout/shipping", { method: "POST", headers: authHeaders(), body: JSON.stringify({ billing: state.shippingData, shipping: state.shippingData, shipping_method: selected.value }) });
+        state.shippingMethod = selected.value;
+        state.checkout = { ...state.checkout, cart: result.cart };
+        renderSummary(state.checkout);
+        await refreshCheckout();
+        renderPayments(await request("/checkout/payment-methods?_=" + Date.now()));
+        state.shippingConfirmed = true;
+        const selectedPayment = $("#ibuture-payment-methods input[name=payment_method]:checked");
+        if (selectedPayment) await syncPaymentMethod(selectedPayment.value);
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        state.shippingSubmitting = false;
+        button.disabled = false;
+        $("#ibuture-place-order").disabled = !state.customerSaved || !state.addressSaved || !state.shippingConfirmed || !state.paymentMethod;
+      }
+    }
     function renderPayments(payload) { const methods = payload.payment_methods || payload.gateways || payload.data || payload; const list = Array.isArray(methods) ? methods : Object.entries(methods || {}).map(([id, method]) => ({ id, ...method })); $("#ibuture-payment-methods").innerHTML = list.length ? list.map((method, index) => { const id = value(method, ["id", "method_id", "slug"]); const selected = state.paymentMethod ? id === state.paymentMethod : index === 0; return `<label style="display:block;padding:.75rem;border:1px solid rgba(0,0,0,.12);margin-top:.5rem;"><input required type="radio" name="payment_method" value="${escapeHtml(id)}" ${selected ? "checked" : ""}> ${escapeHtml(value(method, ["title", "name", "label"]))}</label>`; }).join("") : `<p>${strings.noPayment}</p>`; }
     async function applyCoupon(event) { event.preventDefault(); clearError(); if (state.couponSubmitting) return; const code = formData(event.currentTarget).code.trim(); if (!code) { showError(strings.enterCoupon); return; } if (state.couponCode && state.couponCode.toLowerCase() === code.toLowerCase()) { showError(checkoutMessages.duplicateCoupon); return; } state.couponSubmitting = true; const button = event.currentTarget.querySelector('button[type="submit"]'); if (button) button.disabled = true; try { await getNonce(); await request("/checkout/apply-coupon", { method: "POST", headers: authHeaders(), body: JSON.stringify({ code }) }); await refreshCheckout(); event.currentTarget.reset(); } catch (error) { showError(error.message); } finally { state.couponSubmitting = false; if (button) button.disabled = false; } }
     async function removeCoupon() { clearError(); try { await getNonce(); await request("/checkout/remove-coupon", { method: "POST", headers: authHeaders(), body: JSON.stringify({ code: state.couponCode }) }); state.couponCode = ""; await refreshCheckout(); } catch (error) { showError(error.message); } }
-    async function placeOrder() { clearError(); if (state.submitted) return; if (!state.shippingConfirmed) { showError(strings.confirmShipping); return; } const selected = $("#ibuture-payment-methods input[name=payment_method]:checked"); const shipping = $("#ibuture-shipping-methods input[name=shipping_method]:checked"); if (!selected) { showError(strings.selectPayment); return; } if (!shipping) { showError(strings.selectShipping); return; } state.submitted = true; const button = $("#ibuture-place-order"); button.disabled = true; try { await getNonce(); const payload = await request("/checkout/order", { method: "POST", headers: { ...authHeaders(), "X-Idempotency-Key": crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}` }, body: JSON.stringify({ payment_method: selected.value, shipping_method: shipping.value }) }); $("#ibuture-checkout-content").hidden = true; $("#ibuture-checkout-success").hidden = false; const orderNumber = payload.order_number || payload.order_id; $("#ibuture-order-message").textContent = `${strings.thanks}${orderNumber ? `${strings.orderNumber}${orderNumber}` : ""}. ${strings.orderSaved}`; } catch (error) { state.submitted = false; button.disabled = false; showError(error.message); } }
-    async function init() { renderCountries(); try { await getNonce(); await refreshCheckout(); const itemsCount = Number(state.checkout.items_count ?? state.checkout.cart?.items_count ?? 0); $("#ibuture-checkout-status").textContent = strings.ready; if (!itemsCount) { $("#ibuture-checkout-content").hidden = true; $("#ibuture-checkout-empty").hidden = false; return; } $("#ibuture-checkout-content").hidden = false; $("#ibuture-customer-form").hidden = false; } catch (error) { $("#ibuture-checkout-status").textContent = ""; showError(error.message); } }
+    async function placeOrder() { clearError(); if (state.submitted) return; if (!state.customerSaved || !state.addressSaved || !state.shippingConfirmed || !state.paymentMethod) { showError(strings.confirmShipping); return; } const selected = $("#ibuture-payment-methods input[name=payment_method]:checked"); const shipping = $("#ibuture-shipping-methods input[name=shipping_method]:checked"); if (!selected) { showError(strings.selectPayment); return; } if (!shipping) { showError(strings.selectShipping); return; } state.submitted = true; const button = $("#ibuture-place-order"); button.disabled = true; try { await getNonce(); const payload = await request("/checkout/order", { method: "POST", headers: { ...authHeaders(), "X-Idempotency-Key": crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}` }, body: JSON.stringify({ payment_method: selected.value, shipping_method: shipping.value }) }); $("#ibuture-checkout-content").hidden = true; $("#ibuture-checkout-success").hidden = false; const orderNumber = payload.order_number || payload.order_id; $("#ibuture-order-message").textContent = `${strings.thanks}${orderNumber ? `${strings.orderNumber}${orderNumber}` : ""}. ${strings.orderSaved}`; } catch (error) { state.submitted = false; button.disabled = false; showError(error.message); } }
+    async function init() { renderCountries(); $("#ibuture-confirm-shipping").disabled = true; try { await getNonce(); await refreshCheckout(); const itemsCount = Number(state.checkout.items_count ?? state.checkout.cart?.items_count ?? 0); $("#ibuture-checkout-status").textContent = strings.ready; if (!itemsCount) { $("#ibuture-checkout-content").hidden = true; $("#ibuture-checkout-empty").hidden = false; return; } $("#ibuture-checkout-content").hidden = false; } catch (error) { $("#ibuture-checkout-status").textContent = ""; showError(error.message); } }
     localizeStaticInterface();
-     $("#ibuture-customer-form").addEventListener("submit", (event) => submitForm(event, "/checkout/customer", "#ibuture-shipping-form"));
-     $("#ibuture-shipping-form").addEventListener("submit", (event) => submitForm(event, "/checkout/shipping", "#ibuture-shipping-section"));
+     $("#ibuture-customer-form").addEventListener("submit", (event) => submitForm(event, "/checkout/customer"));
+     $("#ibuture-shipping-form").addEventListener("submit", (event) => submitForm(event, "/checkout/shipping"));
+
+    $("#ibuture-customer-form").addEventListener("input", () => { state.customerSaved = false; $("#ibuture-place-order").disabled = true; });
+    $("#ibuture-shipping-form").addEventListener("input", () => { state.addressSaved = false; state.shippingConfirmed = false; state.shippingMethod = ""; state.paymentMethod = ""; $("#ibuture-confirm-shipping").disabled = true; $("#ibuture-place-order").disabled = true; $("#ibuture-payment-methods").innerHTML = `<p>${strings.confirmShipping}</p>`; });
+    $("#ibuture-shipping-form").addEventListener("change", (event) => { if (event.target.matches("select")) { state.addressSaved = false; state.shippingConfirmed = false; state.shippingMethod = ""; state.paymentMethod = ""; $("#ibuture-confirm-shipping").disabled = true; $("#ibuture-place-order").disabled = true; $("#ibuture-payment-methods").innerHTML = `<p>${strings.confirmShipping}</p>`; } });
     $("#ibuture-confirm-shipping").addEventListener("click", confirmShipping); $("#ibuture-shipping-methods").addEventListener("change", (event) => { if (event.target.matches('input[name="shipping_method"]') && state.shippingConfirmed) syncShippingMethod(event.target.value); }); $("#ibuture-payment-methods").addEventListener("change", (event) => { if (event.target.matches('input[name="payment_method"]')) syncPaymentMethod(event.target.value); }); $("#ibuture-coupon-form").addEventListener("submit", applyCoupon); $("#ibuture-remove-coupon").addEventListener("click", removeCoupon); $("#ibuture-place-order").addEventListener("click", placeOrder); init();
    })();
    </script>
