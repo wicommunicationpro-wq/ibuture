@@ -5,6 +5,6 @@
 .product--payment-security-payment-icons { display: none !important; }
 
 /* IBUTURE: hide only the German product payment heading */
-html[lang^="de"] [data-block-id="payment_security_jqyQzz"] .product--block-heading:not(.product--block-heading-small) {
+html[lang^="de"] [data-block-type="payment-security"] .product--block-heading:not(.product--block-heading-small) {
   display: none !important;
 }
