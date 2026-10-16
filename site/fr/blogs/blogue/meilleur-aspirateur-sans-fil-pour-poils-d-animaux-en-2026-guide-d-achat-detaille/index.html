@@ -8636,7 +8636,7 @@ first.parentNode.insertBefore(script, first);
 
       // 2. Trouver le produit correspondant dans WooCommerce
       const productResponse = await fetch(
-        `https://darkred-partridge-609254.hostingersite.com/wp-json/ibuture/v1/products?slug=${encodeURIComponent(shopifyProduct.handle)}&per_page=1&_=${Date.now()}`,
+        `/wp-json/ibuture/v1/products?slug=${encodeURIComponent(shopifyProduct.handle)}&per_page=1&_=${Date.now()}`,
         {
           credentials: "include",
           cache: "no-store",
@@ -8676,7 +8676,7 @@ first.parentNode.insertBefore(script, first);
 
       // 4. Ajouter au panier WooCommerce
       const cartResponse = await fetch(
-        "https://darkred-partridge-609254.hostingersite.com/wp-json/ibuture/v1/cart/add",
+        "/wp-json/ibuture/v1/cart/add",
         {
           method: "POST",
           credentials: "include",

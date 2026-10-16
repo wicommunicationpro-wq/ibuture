@@ -1,5 +1,5 @@
 (function () {
-  const API = "https://darkred-partridge-609254.hostingersite.com/wp-json/ibuture/v1";
+  const API = "/wp-json/ibuture/v1";
 
   function getFormId(form) {
     return form?.getAttribute?.("id") || "";

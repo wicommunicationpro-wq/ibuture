@@ -6655,7 +6655,7 @@ first.parentNode.insertBefore(script, first);
      const returnUrl = checkoutLocales.includes(checkoutMarketPath)
        ? `/${checkoutMarketPath}/collections/${collectionSlugs[checkoutLocale] || collectionSlugs.fr}/`
        : "/fr/collections/tous-les-aspirateurs/";
-     const API = "https://darkred-partridge-609254.hostingersite.com/wp-json/ibuture/v1";
+     const API = "/wp-json/ibuture/v1";
     const state = { nonce: null, checkout: null, shippingData: null, shippingMethod: "", paymentMethod: "", couponCode: "", couponSubmitting: false, shippingConfirmed: false, submitted: false };
      const $ = (selector) => document.querySelector(selector);
      const errorBox = $("#ibuture-checkout-error");

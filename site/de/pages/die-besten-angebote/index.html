@@ -16271,7 +16271,7 @@ width: 172px;
     </script>
    <script>
      (function () {
-    var API = 'https://darkred-partridge-609254.hostingersite.com/wp-json/ibuture/v1';
+    var API = '/wp-json/ibuture/v1';
     var MAP = {
     '46383886860543': { product_id: 136, variation_id: 0 },
     '46114502967551': { product_id: 127, variation_id: 0 },
@@ -17937,7 +17937,7 @@ width: 172px;
         var localizedName = form.closest('.fd-acc-card')?.querySelector('.fd-acc-card__title')?.textContent.trim();
         if (!localizedName) throw new Error('Der Produktname konnte nicht ermittelt werden.');
 
-        var response = await fetch('https://darkred-partridge-609254.hostingersite.com/wp-json/ibuture/v1/cart/add', {
+        var response = await fetch('/wp-json/ibuture/v1/cart/add', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -18020,7 +18020,7 @@ width: 172px;
     el.style.pointerEvents = 'none';
 
     try {
-      var response = await fetch('https://darkred-partridge-609254.hostingersite.com/wp-json/ibuture/v1/cart/add', {
+      var response = await fetch('/wp-json/ibuture/v1/cart/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
