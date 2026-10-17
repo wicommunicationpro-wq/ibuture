@@ -6580,7 +6580,7 @@ first.parentNode.insertBefore(script, first);
           <button class="button button--xl" type="submit"><span class="button__content">Kontaktdaten speichern</span></button>
          </form>
 
-         <form id="ibuture-shipping-form" class="prose" novalidate hidden style="margin-top:3rem;">
+         <form id="ibuture-shipping-form" class="prose" novalidate style="margin-top:3rem;">
           <h2 class="h3">Lieferadresse</h2>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;">
            <label>Vorname<input required name="first_name" autocomplete="shipping given-name"></label>
@@ -6594,13 +6594,13 @@ first.parentNode.insertBefore(script, first);
           <button class="button button--xl" type="submit"><span class="button__content">Adresse speichern und Versandkosten berechnen</span></button>
          </form>
 
-         <section id="ibuture-shipping-section" class="prose" hidden style="margin-top:3rem;">
+         <section id="ibuture-shipping-section" class="prose" style="margin-top:3rem;">
           <h2 class="h3">Versandart</h2>
           <div id="ibuture-shipping-methods"></div>
             <button id="ibuture-confirm-shipping" class="button button--xl" type="button" style="margin-top:1rem;"><span class="button__content">Versandart bestätigen</span></button>
          </section>
 
-         <section id="ibuture-payment-section" class="prose" hidden style="margin-top:3rem;">
+         <section id="ibuture-payment-section" class="prose" style="margin-top:3rem;">
           <h2 class="h3">Zahlungsmethode</h2>
           <div id="ibuture-payment-methods"><p>Bitte bestätigen Sie zuerst Ihre Versandart.</p></div>
           <button id="ibuture-place-order" class="button button--xl" type="button" disabled style="margin-top:1rem;"><span class="button__content">Jetzt zahlungspflichtig bestellen</span></button>
@@ -6665,12 +6665,6 @@ first.parentNode.insertBefore(script, first);
     const state = { nonce: null, checkout: null, shippingData: null, shippingMethod: "", paymentMethod: "", couponCode: "", couponSubmitting: false, customerSaved: false, addressSaved: false, shippingConfirmed: false, customerSubmitting: false, addressSubmitting: false, shippingSubmitting: false, paymentSubmitting: false, submitted: false };
      const $ = (selector) => document.querySelector(selector);
      const errorBox = $("#ibuture-checkout-error");
-     function updateCheckoutProgress() {
-       $("#ibuture-shipping-form").hidden = !state.customerSaved;
-       $("#ibuture-shipping-section").hidden = !state.customerSaved || !state.addressSaved;
-       $("#ibuture-payment-section").hidden = !state.customerSaved || !state.addressSaved || !state.shippingConfirmed;
-     }
-
      function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
      function showError(message) { errorBox.textContent = message || strings.error; errorBox.hidden = false; }
      function clearError() { errorBox.hidden = true; errorBox.textContent = ""; }
@@ -6816,7 +6810,6 @@ first.parentNode.insertBefore(script, first);
           $("#ibuture-confirm-shipping").disabled = true;
         }
         $("#ibuture-payment-methods").innerHTML = `<p>${strings.confirmShipping}</p>`;
-        updateCheckoutProgress();
         await getNonce();
         if (isAddress) {
           state.shippingData = data;
@@ -6828,12 +6821,10 @@ first.parentNode.insertBefore(script, first);
           state.paymentMethod = "";
           $("#ibuture-confirm-shipping").disabled = false;
           $("#ibuture-place-order").disabled = true;
-          updateCheckoutProgress();
         } else {
           await request(path, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
           state.customerSaved = true;
           $("#ibuture-place-order").disabled = !state.customerSaved || !state.addressSaved || !state.shippingConfirmed || !state.paymentMethod;
-          updateCheckoutProgress();
         }
       } catch (error) {
         showError(error.message);
@@ -6851,7 +6842,6 @@ first.parentNode.insertBefore(script, first);
       const previousMethod = state.shippingMethod;
       state.shippingConfirmed = false;
       $("#ibuture-place-order").disabled = true;
-      updateCheckoutProgress();
       state.shippingSubmitting = true;
       try {
         await getNonce();
@@ -6860,11 +6850,9 @@ first.parentNode.insertBefore(script, first);
         state.shippingConfirmed = true;
         state.checkout = { ...state.checkout, cart: result.cart };
         renderSummary(state.checkout);
-        updateCheckoutProgress();
       } catch (error) {
         state.shippingMethod = previousMethod;
         state.shippingConfirmed = false;
-        updateCheckoutProgress();
         if (state.checkout) renderShipping(state.checkout);
         showError(error.message);
       } finally {
@@ -6905,7 +6893,6 @@ first.parentNode.insertBefore(script, first);
       state.shippingSubmitting = true;
       state.shippingConfirmed = false;
       $("#ibuture-place-order").disabled = true;
-      updateCheckoutProgress();
       try {
         await getNonce();
         const result = await request("/checkout/shipping", { method: "POST", headers: authHeaders(), body: JSON.stringify({ billing: state.shippingData, shipping: state.shippingData, shipping_method: selected.value }) });
@@ -6915,7 +6902,6 @@ first.parentNode.insertBefore(script, first);
         await refreshCheckout();
         renderPayments(await request("/checkout/payment-methods?_=" + Date.now()));
         state.shippingConfirmed = true;
-        updateCheckoutProgress();
         const selectedPayment = $("#ibuture-payment-methods input[name=payment_method]:checked");
         if (selectedPayment) await syncPaymentMethod(selectedPayment.value);
       } catch (error) {
@@ -6923,7 +6909,6 @@ first.parentNode.insertBefore(script, first);
       } finally {
         state.shippingSubmitting = false;
         button.disabled = false;
-        updateCheckoutProgress();
         $("#ibuture-place-order").disabled = !state.customerSaved || !state.addressSaved || !state.shippingConfirmed || !state.paymentMethod;
       }
     }
@@ -6936,9 +6921,9 @@ first.parentNode.insertBefore(script, first);
      $("#ibuture-customer-form").addEventListener("submit", (event) => submitForm(event, "/checkout/customer"));
      $("#ibuture-shipping-form").addEventListener("submit", (event) => submitForm(event, "/checkout/shipping"));
 
-    $("#ibuture-customer-form").addEventListener("input", () => { state.customerSaved = false; state.addressSaved = false; state.shippingConfirmed = false; state.shippingData = null; state.shippingMethod = ""; state.paymentMethod = ""; $("#ibuture-confirm-shipping").disabled = true; $("#ibuture-place-order").disabled = true; $("#ibuture-payment-methods").innerHTML = `<p>${strings.confirmShipping}</p>`; updateCheckoutProgress(); });
-    $("#ibuture-shipping-form").addEventListener("input", () => { state.addressSaved = false; state.shippingConfirmed = false; state.shippingData = null; state.shippingMethod = ""; state.paymentMethod = ""; $("#ibuture-confirm-shipping").disabled = true; $("#ibuture-place-order").disabled = true; $("#ibuture-payment-methods").innerHTML = `<p>${strings.confirmShipping}</p>`; updateCheckoutProgress(); });
-    $("#ibuture-shipping-form").addEventListener("change", (event) => { if (event.target.matches("select")) { state.addressSaved = false; state.shippingConfirmed = false; state.shippingData = null; state.shippingMethod = ""; state.paymentMethod = ""; $("#ibuture-confirm-shipping").disabled = true; $("#ibuture-place-order").disabled = true; $("#ibuture-payment-methods").innerHTML = `<p>${strings.confirmShipping}</p>`; updateCheckoutProgress(); } });
+    $("#ibuture-customer-form").addEventListener("input", () => { state.customerSaved = false; state.addressSaved = false; state.shippingConfirmed = false; state.shippingData = null; state.shippingMethod = ""; state.paymentMethod = ""; $("#ibuture-confirm-shipping").disabled = true; $("#ibuture-place-order").disabled = true; $("#ibuture-payment-methods").innerHTML = `<p>${strings.confirmShipping}</p>`; });
+    $("#ibuture-shipping-form").addEventListener("input", () => { state.addressSaved = false; state.shippingConfirmed = false; state.shippingData = null; state.shippingMethod = ""; state.paymentMethod = ""; $("#ibuture-confirm-shipping").disabled = true; $("#ibuture-place-order").disabled = true; $("#ibuture-payment-methods").innerHTML = `<p>${strings.confirmShipping}</p>`; });
+    $("#ibuture-shipping-form").addEventListener("change", (event) => { if (event.target.matches("select")) { state.addressSaved = false; state.shippingConfirmed = false; state.shippingData = null; state.shippingMethod = ""; state.paymentMethod = ""; $("#ibuture-confirm-shipping").disabled = true; $("#ibuture-place-order").disabled = true; $("#ibuture-payment-methods").innerHTML = `<p>${strings.confirmShipping}</p>`; } });
     $("#ibuture-confirm-shipping").addEventListener("click", confirmShipping); $("#ibuture-shipping-methods").addEventListener("change", (event) => { if (event.target.matches('input[name="shipping_method"]') && state.shippingConfirmed) syncShippingMethod(event.target.value); }); $("#ibuture-payment-methods").addEventListener("change", (event) => { if (event.target.matches('input[name="payment_method"]')) syncPaymentMethod(event.target.value); }); $("#ibuture-coupon-form").addEventListener("submit", applyCoupon); $("#ibuture-remove-coupon").addEventListener("click", removeCoupon); $("#ibuture-place-order").addEventListener("click", placeOrder); init();
    })();
    </script>
