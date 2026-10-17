@@ -31,18 +31,29 @@ test("all checkout sections remain visible together after a non-empty cart loads
   assert.match(checkout, /#ibuture-checkout-content"\)\.hidden = false/);
 });
 
-test("address changes invalidate delivery and order until server synchronization succeeds", () => {
-  assert.match(checkout, /#ibuture-shipping-form"\)\.addEventListener\("input", \(\) => \{ state\.addressSaved = false; state\.shippingConfirmed = false;/);
-  assert.match(checkout, /#ibuture-shipping-form"\)\.addEventListener\("change", \(event\) => \{ if \(event\.target\.matches\("select"\)\).*?state\.addressSaved = false/s);
-  assert.match(checkout, /await request\("\/checkout\/customer".*?await refreshCheckout\(\);\s*state\.addressSaved = true;/s);
-  assert.match(checkout, /if \(state\.shippingSubmitting \|\| !state\.customerSaved \|\| !state\.addressSaved\)/);
-  assert.match(checkout, /!state\.customerSaved \|\| !state\.addressSaved \|\| !state\.shippingConfirmed \|\| !state\.paymentMethod/);
+test("single final action validates both forms and synchronizes address-dependent shipping", () => {
+  const orderFlow = controller.slice(controller.indexOf("async function placeOrder()"), controller.indexOf("async function init()"));
+  assert.match(orderFlow, /customerForm\.checkValidity\(\).*?customerForm\.reportValidity\(\)/s);
+  assert.match(orderFlow, /shippingForm\.checkValidity\(\).*?shippingForm\.reportValidity\(\)/s);
+  assert.ok(orderFlow.indexOf("formData(customerForm)") < orderFlow.indexOf("setCheckoutControlsDisabled(true)"));
+  assert.ok(orderFlow.indexOf("formData(shippingForm)") < orderFlow.indexOf("setCheckoutControlsDisabled(true)"));
+  assert.match(orderFlow, /request\("\/checkout\/shipping"[\s\S]*?JSON\.stringify\(\{ billing, shipping, shipping_method: shippingMethod \}\)/);
+  assert.match(orderFlow, /await refreshCheckout\(\)/);
+  assert.match(orderFlow, /JSON\.stringify\(\{ billing, shipping, payment_method: paymentMethod, shipping_method: shippingMethod \}\)/);
+  assert.doesNotMatch(checkout, /id="ibuture-confirm-shipping"/);
+  assert.equal((checkout.match(/id="ibuture-place-order"/g) || []).length, 1);
+  for (const formId of ["ibuture-customer-form", "ibuture-shipping-form"]) {
+    const form = checkout.match(new RegExp(`<form id="${formId}"[\\s\\S]*?<\\/form>`))?.[0];
+    assert.ok(form, `missing ${formId}`);
+    assert.doesNotMatch(form, /<button[^>]*type="submit"/);
+  }
 });
 
-test("customer, address, delivery and order submissions have duplicate guards", () => {
-  assert.match(checkout, /if \(isAddress \? state\.addressSubmitting : state\.customerSubmitting\) return/);
-  assert.match(checkout, /if \(state\.shippingSubmitting \|\| !state\.addressSaved\) return/);
-  assert.match(checkout, /if \(state\.submitted\) return/);
+test("final submission guards concurrent orders and reuses the idempotency key", () => {
+  assert.match(controller, /if \(state\.submitted\) return/);
+  assert.match(controller, /if \(!state\.idempotencyKey\) state\.idempotencyKey =/);
+  assert.match(controller, /"X-Idempotency-Key": idempotencyKey\(\)/);
+  assert.match(controller, /orderPayload\.success !== true \|\| !orderPayload\.order_id/);
 });
 
 test("checkout controller parses as JavaScript and keeps the existing same-origin API", () => {
@@ -55,7 +66,7 @@ test("checkout controller parses as JavaScript and keeps the existing same-origi
 function createCheckoutHarness() {
   const elements = new Map();
   const requests = [];
-  let resolveOrder;
+  const orderRequests = [];
   class Element {
     constructor(selector) {
       this.selector = selector;
@@ -63,18 +74,18 @@ function createCheckoutHarness() {
       this.childNodes = [];
       this.radios = [];
       this.controls = [];
-      this.hidden = selector === "#ibuture-checkout-empty";
+      this.hidden = ["#ibuture-checkout-empty", "#ibuture-checkout-success", "#ibuture-checkout-content"].includes(selector);
       this.disabled = false;
       this.value = "";
       this.textContent = "";
       this.href = "";
       this._innerHTML = "";
       this.submitButton = { disabled: false };
-      if (selector === "#ibuture-place-order") this.disabled = true;
-      if (selector === "#ibuture-confirm-shipping") this.disabled = true;
-      if (selector === "#ibuture-customer-form" || selector === "#ibuture-shipping-form") {
-        this.controls = [{ disabled: false }, { disabled: false }, this.submitButton];
-      }
+      this.valid = true;
+      this.reportValidityCalls = 0;
+      this.reset = () => {};
+      this.controls = selector === "#ibuture-customer-form" || selector === "#ibuture-shipping-form"
+        ? [{ disabled: false }, { disabled: false }] : [];
     }
     set innerHTML(html) {
       this._innerHTML = html;
@@ -97,8 +108,8 @@ function createCheckoutHarness() {
       if (selector === "input, select, button") return this.controls;
       return [];
     }
-    checkValidity() { return true; }
-    reportValidity() {}
+    checkValidity() { return this.valid; }
+    reportValidity() { this.reportValidityCalls += 1; }
   }
   const getElement = (selector) => {
     if (selector.includes(":checked")) {
@@ -115,9 +126,24 @@ function createCheckoutHarness() {
     shipping_methods: [{ id: "flat_rate:1", name: "Standard", amount: "0.00" }],
   };
   const response = (payload) => ({ ok: true, status: 200, json: async () => payload });
+  const checkoutPayload = () => ({ success: true, ...cart, cart, payment_methods: [{ id: "cod", title: "Cash on delivery" }] });
   const context = {
-    document: { querySelector: getElement },
-    window: { location: { pathname: "/de-de/checkout/" }, IBUTURE_MARKET_HEADERS: () => ({ "X-IBUTURE-Market": "DE" }) },
+    document: {
+      querySelector: getElement,
+      querySelectorAll: () => [
+        ...getElement("#ibuture-customer-form").controls,
+        ...getElement("#ibuture-shipping-form").controls,
+        ...getElement("#ibuture-shipping-methods").radios,
+        ...getElement("#ibuture-payment-methods").radios,
+        getElement("#ibuture-remove-coupon"),
+        getElement("#ibuture-place-order"),
+      ],
+    },
+    window: {
+      location: { pathname: "/de-de/checkout/" },
+      IBUTURE_MARKET_HEADERS: () => ({ "X-IBUTURE-Market": "DE" }),
+      crypto: { randomUUID: () => "mock-idempotency-key" },
+    },
     FormData: class {
       constructor(form) { this.form = form; }
       entries() {
@@ -129,23 +155,37 @@ function createCheckoutHarness() {
     fetch: async (url, options) => {
       requests.push({ url, options });
       if (url.includes("/checkout/nonce")) return response({ nonce: "mock-nonce" });
-      if (url.includes("/checkout/payment-methods")) return response([{ id: "cod", title: "Cash on delivery" }]);
-      if (url.endsWith("/checkout/order")) return new Promise((resolve) => { resolveOrder = () => resolve(response({ success: true, order_id: 123 })); });
-      if (url.includes("/checkout?_=")) return response(cart);
+      if (url.endsWith("/checkout/order")) return new Promise((resolve, reject) => { orderRequests.push({ resolve, reject, options }); });
+      if (url.includes("/checkout?_=")) return response(checkoutPayload());
+      if (url.endsWith("/checkout/shipping")) return response({ success: true, cart, shipping_methods: cart.shipping_methods });
       if (url.includes("/checkout/")) return response({ success: true, cart });
       return response({});
     },
-    crypto: { randomUUID: () => "mock-idempotency-key" },
     setTimeout,
     console,
   };
+  getElement("#ibuture-customer-form");
+  getElement("#ibuture-shipping-form");
+  getElement("#ibuture-checkout-content");
+  getElement("#ibuture-checkout-success");
   vm.runInNewContext(controller, context);
-  return { elements, requests, get resolveOrder() { return resolveOrder; } };
+  return {
+    elements,
+    getElement,
+    requests,
+    orderRequests,
+    resolveOrder(index = 0, payload = { success: true, order_id: 123 }) {
+      orderRequests[index].resolve(response(payload));
+    },
+    rejectOrder(index = 0, error = new Error("network failure")) {
+      orderRequests[index].reject(error);
+    },
+  };
 }
 
-test("mocked checkout loads DE, saves address, invalidates stale shipping, and blocks duplicate orders", async () => {
+test("mocked checkout validates and submits all fields once, then waits for server confirmation", async () => {
   const harness = createCheckoutHarness();
-  const { elements, requests } = harness;
+  const { elements, requests, orderRequests } = harness;
   const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
   await flush();
   assert.equal(elements.get("#ibuture-checkout-content").hidden, false);
@@ -153,28 +193,76 @@ test("mocked checkout loads DE, saves address, invalidates stale shipping, and b
   assert.ok(requests.every(({ url }) => url.startsWith("/wp-json/ibuture/v1/")));
   assert.ok(requests.every(({ options }) => options.headers["X-IBUTURE-Market"] === "DE"));
 
-  const submit = async (selector) => elements.get(selector).listeners.submit[0]({
-    preventDefault() {}, currentTarget: elements.get(selector),
-  });
-  await submit("#ibuture-customer-form");
-  await submit("#ibuture-shipping-form");
-  await elements.get("#ibuture-confirm-shipping").listeners.click[0]();
-  assert.equal(elements.get("#ibuture-place-order").disabled, false);
-
-  elements.get("#ibuture-shipping-form").listeners.input[0]({});
-  assert.equal(elements.get("#ibuture-place-order").disabled, true);
-  assert.equal(elements.get("#ibuture-confirm-shipping").disabled, true);
-  await submit("#ibuture-shipping-form");
-  assert.equal(elements.get("#ibuture-confirm-shipping").disabled, false);
-  assert.equal(elements.get("#ibuture-place-order").disabled, true);
-  await elements.get("#ibuture-confirm-shipping").listeners.click[0]();
-  assert.equal(elements.get("#ibuture-place-order").disabled, false);
-
   const placeOrder = elements.get("#ibuture-place-order").listeners.click[0];
-  const firstOrder = placeOrder();
+  const customerForm = harness.getElement("#ibuture-customer-form");
+  const shippingForm = harness.getElement("#ibuture-shipping-form");
+  customerForm.valid = false;
+  await placeOrder();
+  assert.equal(customerForm.reportValidityCalls, 1);
+  assert.equal(requests.some(({ url }) => url.endsWith("/checkout/shipping")), false);
+
+  customerForm.valid = true;
+  shippingForm.valid = false;
+  await placeOrder();
+  assert.equal(shippingForm.reportValidityCalls, 1);
+  assert.equal(requests.some(({ url }) => url.endsWith("/checkout/shipping")), false);
+
+  shippingForm.valid = true;
+  const firstAttempt = placeOrder();
   await flush();
-  const secondOrder = placeOrder();
-  assert.equal(requests.filter(({ url }) => url.endsWith("/checkout/order")).length, 1);
+  assert.equal(requests.filter(({ url }) => url.endsWith("/checkout/shipping")).length, 1);
+  const shippingRequest = requests.find(({ url }) => url.endsWith("/checkout/shipping"));
+  const shippingBody = JSON.parse(shippingRequest.options.body);
+  assert.deepEqual({ ...shippingBody.billing }, {
+    first_name: "Test", last_name: "Buyer", address_1: "Test Street 1", city: "Berlin",
+    postcode: "10115", country: "DE", email: "buyer@example.test", phone: "123",
+  });
+  assert.deepEqual({ ...shippingBody.shipping }, {
+    first_name: "Test", last_name: "Buyer", address_1: "Test Street 1", city: "Berlin",
+    postcode: "10115", country: "DE",
+  });
+  assert.equal(shippingBody.shipping_method, "flat_rate:1");
+  assert.equal(requests.some(({ url }) => url.endsWith("/checkout/order")), true);
+  assert.equal(orderRequests.length, 1);
+  assert.equal(elements.get("#ibuture-checkout-content").hidden, false);
+  assert.equal(elements.get("#ibuture-checkout-success").hidden, true);
+
+  const secondAttempt = placeOrder();
+  assert.equal(orderRequests.length, 1);
   harness.resolveOrder();
-  await Promise.all([firstOrder, secondOrder]);
+  await Promise.all([firstAttempt, secondAttempt]);
+  assert.equal(elements.get("#ibuture-checkout-content").hidden, true);
+  assert.equal(elements.get("#ibuture-checkout-success").hidden, false);
+  const orderRequest = requests.find(({ url }) => url.endsWith("/checkout/order"));
+  const orderBody = JSON.parse(orderRequest.options.body);
+  assert.equal(orderBody.billing.email, "buyer@example.test");
+  assert.equal(orderBody.shipping.address_1, "Test Street 1");
+  assert.equal(orderBody.shipping_method, "flat_rate:1");
+  assert.equal(orderBody.payment_method, "cod");
+  assert.equal(orderRequest.options.headers["X-Idempotency-Key"], "mock-idempotency-key");
+});
+
+test("retry after an uncertain order response keeps the same idempotency key and success requires confirmation", async () => {
+  const harness = createCheckoutHarness();
+  const { elements, requests, orderRequests } = harness;
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+  const placeOrder = elements.get("#ibuture-place-order").listeners.click[0];
+  const firstAttempt = placeOrder();
+  await flush();
+  harness.rejectOrder(0);
+  await firstAttempt;
+  assert.equal(elements.get("#ibuture-checkout-content").hidden, false);
+  assert.equal(elements.get("#ibuture-checkout-success").hidden, true);
+
+  const retry = placeOrder();
+  await flush();
+  assert.equal(orderRequests.length, 2);
+  const orderHeaders = requests.filter(({ url }) => url.endsWith("/checkout/order")).map(({ options }) => options.headers["X-Idempotency-Key"]);
+  assert.deepEqual(orderHeaders, ["mock-idempotency-key", "mock-idempotency-key"]);
+  assert.equal(elements.get("#ibuture-checkout-content").hidden, false);
+  harness.resolveOrder(1);
+  await retry;
+  assert.equal(elements.get("#ibuture-checkout-content").hidden, true);
+  assert.equal(elements.get("#ibuture-checkout-success").hidden, false);
 });
