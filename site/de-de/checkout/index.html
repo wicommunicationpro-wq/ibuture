@@ -6789,12 +6789,12 @@ first.parentNode.insertBefore(script, first);
       if (isAddress ? state.addressSubmitting : state.customerSubmitting) return;
       const button = form.querySelector("button[type=submit]");
       const controls = form.querySelectorAll("input, select, button");
-      controls.forEach((control) => { control.disabled = true; });
-      if (isAddress) state.addressSubmitting = true;
-      else state.customerSubmitting = true;
       try {
-        await getNonce();
+        if (isAddress) state.addressSubmitting = true;
+        else state.customerSubmitting = true;
         const data = formData(form);
+        controls.forEach((control) => { control.disabled = true; });
+        await getNonce();
         if (isAddress) {
           state.shippingData = data;
           await request("/checkout/customer", { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
