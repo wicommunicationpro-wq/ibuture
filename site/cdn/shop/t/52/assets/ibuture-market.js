@@ -68,4 +68,26 @@
       "X-IBUTURE-Market": window.IBUTURE_MARKET
     };
   };
+
+  if (window.location.hostname.toLowerCase() !== "lbuture.com") return;
+
+  const pathSegments = window.location.pathname
+    .toLowerCase()
+    .split("/")
+    .filter(Boolean);
+  const localePattern = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/;
+  const routeSegments =
+    pathSegments.length > 1 && localePattern.test(pathSegments[0])
+      ? pathSegments.slice(1)
+      : pathSegments;
+
+  if (routeSegments[0] === "cart" || routeSegments[0] === "checkout") return;
+
+  const chatwootScriptSrc = "/cdn/shop/t/52/assets/ibuture-chatwoot.js";
+  if (document.querySelector(`script[src="${chatwootScriptSrc}"]`)) return;
+
+  const chatwootScript = document.createElement("script");
+  chatwootScript.src = chatwootScriptSrc;
+  chatwootScript.async = true;
+  document.head.appendChild(chatwootScript);
 })();
