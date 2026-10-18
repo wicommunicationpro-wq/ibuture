@@ -46,18 +46,19 @@ function createHarness({
   };
 }
 
-test("loads one async Chatwoot asset on a public page at lbuture.com", () => {
-  const harness = createHarness();
-  harness.execute();
+test("loads one async Chatwoot asset on public pages at both allowed hosts", () => {
+  for (const hostname of ["lbuture.com", "www.lbuture.com"]) {
+    const harness = createHarness({ hostname });
+    harness.execute();
 
-  assert.equal(harness.scripts.length, 1);
-  assert.equal(harness.scripts[0].src, CHATWOOT_SCRIPT_SRC);
-  assert.equal(harness.scripts[0].async, true);
+    assert.equal(harness.scripts.length, 1, hostname);
+    assert.equal(harness.scripts[0].src, CHATWOOT_SCRIPT_SRC, hostname);
+    assert.equal(harness.scripts[0].async, true, hostname);
+  }
 });
 
-test("does not load Chatwoot on www, Vercel preview, or other hosts", () => {
+test("does not load Chatwoot on Vercel preview or other hosts", () => {
   for (const hostname of [
-    "www.lbuture.com",
     "ibuture-preview.vercel.app",
     "example.com"
   ]) {

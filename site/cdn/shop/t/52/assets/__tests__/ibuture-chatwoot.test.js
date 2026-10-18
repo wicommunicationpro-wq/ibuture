@@ -191,8 +191,18 @@ test("loads and initializes Chatwoot on the exact allowed domain", () => {
   assert.equal(harness.runCalls[0].baseUrl, "https://app.chatwoot.com");
 });
 
-test("does not load Chatwoot on another domain or a subdomain", () => {
-  for (const hostname of ["ibuture.com", "www.lbuture.com", "example.com"]) {
+test("allows both production hosts and rejects other domains", () => {
+  for (const hostname of ["lbuture.com", "www.lbuture.com"]) {
+    const harness = createHarness({ hostname });
+    harness.execute();
+    assert.equal(harness.scripts.length, 1, hostname);
+  }
+
+  for (const hostname of [
+    "ibuture.com",
+    "preview.vercel.app",
+    "example.com"
+  ]) {
     const harness = createHarness({ hostname });
     harness.execute();
     assert.equal(harness.scripts.length, 0, hostname);

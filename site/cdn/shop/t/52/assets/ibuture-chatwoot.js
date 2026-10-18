@@ -1,5 +1,6 @@
 ;(() => {
-  if (window.location.hostname.toLowerCase() !== "lbuture.com") return;
+  const hostname = window.location.hostname.toLowerCase();
+  if (hostname !== "lbuture.com" && hostname !== "www.lbuture.com") return;
 
   const segments = window.location.pathname
     .toLowerCase()
