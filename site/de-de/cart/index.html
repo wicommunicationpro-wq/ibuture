@@ -699,6 +699,12 @@ Shopify.SignInWithShop.User.recognized = false;
   </script>
   <link href="../../cdn/shop/t/52/assets/theme.css" media="all" rel="stylesheet" type="text/css">
   <link href="../../cdn/shop/t/52/assets/ibuture-cart-checkout.css" media="all" rel="stylesheet" type="text/css">
+  <style>
+/* IBUTURE: masquer le message français de livraison sur le panier allemand */
+.ibuture-cart-page .section-stack > .prose:first-child:after {
+  content: none;
+}
+</style>
    <script type="application/ld+json">
     {
   "@context": "https://schema.org/",
