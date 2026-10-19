@@ -103,6 +103,12 @@
 
   if (!page) return;
 
+  if (window.location.pathname === "/de/cart/") {
+    const style = document.createElement("style");
+    style.textContent = ".ibuture-cart-page .section-stack > .prose:first-child::after { content: none; }";
+    document.head.append(style);
+  }
+
   const loading = page.querySelector("#ibuture-cart-loading");
   const empty = page.querySelector("#ibuture-cart-empty");
   const content = page.querySelector("#ibuture-cart-content");
