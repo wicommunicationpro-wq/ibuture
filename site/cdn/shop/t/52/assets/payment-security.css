@@ -8,3 +8,12 @@
 html[lang^="de"] [data-block-type="payment-security"] .product--block-heading:not(.product--block-heading-small) {
   display: none !important;
 }
+
+/* IBUTURE: hide payment logos and heading on German pages */
+html[lang^="de"] .product--payment-security-payment-icons {
+  display: none !important;
+}
+
+html[lang^="de"] [data-block-type="payment-security"] .product--block-heading:not(.product--block-heading-small) {
+  display: none !important;
+}
