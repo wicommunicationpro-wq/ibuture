@@ -67,6 +67,8 @@ function createCheckoutHarness(options = {}) {
   const elements = new Map();
   const requests = [];
   const orderRequests = [];
+  const shippingRequests = [];
+  const couponRequests = [];
   const historyReplacements = [];
   const conversionEvents = [];
   const conversionSuccessVisibility = [];
@@ -123,14 +125,19 @@ function createCheckoutHarness(options = {}) {
     if (!elements.has(selector)) elements.set(selector, new Element(selector));
     return elements.get(selector);
   };
-  const cart = {
+  const cart = options.cart || {
     items_count: 1,
     items: [{ name: "Test item", quantity: 1, line_total: "10.00" }],
-    totals: { subtotal: 10, shipping_total: 0, discount_total: 0, tax_total: 0, total: 10, currency: "EUR", fees: [] },
-    shipping_methods: [{ id: "flat_rate:1", name: "Standard", amount: "0.00" }],
+    subtotal: 10, shipping_total: 0, discount_total: 0, tax_total: 0, total: 10, currency: "EUR", fees: [],
   };
-  const response = (payload) => ({ ok: true, status: 200, json: async () => payload });
-  const checkoutPayload = () => ({ success: true, ...cart, cart, payment_methods: [{ id: "cod", title: "Cash on delivery" }] });
+  let serverCart = cart;
+  const shippingMethods = options.shippingMethods || [
+    { id: "flat_rate:1", name: "Standard", cost: "0.00" },
+    { id: "flat_rate:2", name: "Express", cost: "5.00" },
+  ];
+  const paymentMethods = options.paymentMethods || [{ id: "cod", title: "Cash on delivery" }];
+  const response = (payload, status = 200) => ({ ok: status < 400, status, json: async () => payload });
+  const checkoutPayload = () => ({ success: true, cart: serverCart, shipping_methods: shippingMethods, payment_methods: paymentMethods });
   const context = {
     document: {
       querySelector: getElement,
@@ -168,9 +175,13 @@ function createCheckoutHarness(options = {}) {
     FormData: class {
       constructor(form) { this.form = form; }
       entries() {
-        return Object.entries(this.form.selector === "#ibuture-customer-form"
-          ? { first_name: "Test", last_name: "Buyer", email: "buyer@example.test", phone: "123" }
-          : { first_name: "Test", last_name: "Buyer", address_1: "Test Street 1", city: "Berlin", postcode: "10115", country: "DE" });
+        if (this.form.selector === "#ibuture-customer-form") {
+          return Object.entries({ first_name: "Test", last_name: "Buyer", email: "buyer@example.test", phone: "123" });
+        }
+        if (this.form.selector === "#ibuture-coupon-form") {
+          return Object.entries({ code: options.couponCode || "SAVE" });
+        }
+        return Object.entries({ first_name: "Test", last_name: "Buyer", address_1: "Test Street 1", city: "Berlin", postcode: "10115", country: "DE" });
       }
     },
     fetch: async (url, requestOptions) => {
@@ -187,10 +198,24 @@ function createCheckoutHarness(options = {}) {
       if (url.includes("/cart?")) return response({ success: true, items: [] });
       if (url.endsWith("/cart/add")) return response({ success: true });
       if (url.includes("/checkout/nonce")) return response({ nonce: "mock-nonce" });
-      if (url.endsWith("/checkout/order")) return new Promise((resolve, reject) => { orderRequests.push({ resolve, reject, options }); });
+      if (url.endsWith("/checkout/order")) return new Promise((resolve, reject) => { orderRequests.push({ resolve, reject, options: requestOptions }); });
       if (url.includes("/checkout?_=")) return response(checkoutPayload());
-      if (url.endsWith("/checkout/shipping")) return response({ success: true, cart, shipping_methods: cart.shipping_methods });
-      if (url.includes("/checkout/")) return response({ success: true, cart });
+      if (url.endsWith("/checkout/shipping")) {
+        const call = { body: JSON.parse(requestOptions.body), options: requestOptions };
+        shippingRequests.push(call);
+        if (options.shippingHandler) return options.shippingHandler({ ...call, index: shippingRequests.length - 1, cart: serverCart, setCart: (nextCart) => { serverCart = nextCart; }, response });
+        if (options.deferShipping && shippingRequests.length > 1) {
+          return new Promise((resolve) => { call.resolve = resolve; });
+        }
+        return response({ success: true, cart: serverCart, shipping_methods: shippingMethods });
+      }
+      if (url.endsWith("/checkout/apply-coupon") || url.endsWith("/checkout/remove-coupon")) {
+        const call = { url, body: JSON.parse(requestOptions.body), options: requestOptions };
+        couponRequests.push(call);
+        if (options.couponHandler) return options.couponHandler({ ...call, cart: serverCart, setCart: (nextCart) => { serverCart = nextCart; }, response });
+        return response({ success: true, cart: serverCart });
+      }
+      if (url.includes("/checkout/")) return response({ success: true, cart: serverCart });
       return response({});
     },
     setTimeout,
@@ -206,6 +231,18 @@ function createCheckoutHarness(options = {}) {
     getElement,
     requests,
     orderRequests,
+    shippingRequests,
+    couponRequests,
+    cart,
+    selectShippingMethod(id) {
+      const radios = getElement("#ibuture-shipping-methods").radios;
+      radios.forEach((radio) => { radio.checked = radio.value === id; });
+      return radios.find((radio) => radio.value === id);
+    },
+    resolveShipping(index, payload, status = 200) {
+      shippingRequests[index].resolve(response(payload, status));
+    },
+    getCart() { return serverCart; },
     historyReplacements,
     conversionEvents,
     conversionSuccessVisibility,
@@ -285,9 +322,329 @@ test("German direct link adds the real simple VC90 product without a variation",
   assert.equal(harness.getElement("#ibuture-checkout-content").hidden, false);
 });
 
+test("German checkout recalculates totals from WooCommerce when the shipping method changes", async () => {
+  const harness = createCheckoutHarness({
+    shippingHandler: ({ body, cart, response: makeResponse }) => {
+      const shipping = body.shipping_method === "flat_rate:2" ? 7 : 2;
+      return makeResponse({
+        success: true,
+        cart: { ...cart, shipping_total: shipping, total: cart.subtotal + shipping },
+        shipping_methods: [
+          { id: "flat_rate:1", name: "Standard", cost: "2.00" },
+          { id: "flat_rate:2", name: "Express", cost: "7.00" },
+        ],
+      });
+    },
+  });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+
+  const summary = harness.getElement("#ibuture-checkout-totals");
+  const methods = harness.getElement("#ibuture-shipping-methods");
+  assert.equal(harness.shippingRequests[0].body.shipping_method, "flat_rate:1");
+  assert.match(summary.innerHTML, /12,00/);
+  assert.equal(methods.radios.find((radio) => radio.checked).value, "flat_rate:1");
+
+  const secondMethod = harness.selectShippingMethod("flat_rate:2");
+  await methods.listeners.change[0]({ target: secondMethod });
+
+  assert.equal(harness.shippingRequests[1].body.shipping_method, "flat_rate:2");
+  assert.deepEqual(Object.keys(harness.shippingRequests[1].body).sort(), ["billing", "shipping", "shipping_method"]);
+  assert.equal(harness.shippingRequests[1].options.headers["X-WP-Nonce"], "mock-nonce");
+  assert.equal(harness.shippingRequests[1].options.headers["X-IBUTURE-Market"], "DE");
+  assert.match(summary.innerHTML, /17,00/);
+  assert.match(summary.innerHTML, /7,00/);
+  assert.equal(methods.radios.find((radio) => radio.checked).value, "flat_rate:2");
+  assert.equal(harness.getElement("#ibuture-place-order").disabled, false);
+
+  const orderAttempt = harness.getElement("#ibuture-place-order").listeners.click[0]();
+  await flush();
+  const orderRequest = harness.orderRequests[0];
+  assert.ok(orderRequest);
+  assert.equal(JSON.parse(orderRequest.options.body).shipping_method, "flat_rate:2");
+  assert.equal(orderRequest.options.headers["X-WP-Nonce"], "mock-nonce");
+  harness.resolveOrder();
+  await orderAttempt;
+});
+
+test("rapid shipping changes serialize requests and ignore an obsolete response", async () => {
+  const harness = createCheckoutHarness({ deferShipping: true });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+  const methods = harness.getElement("#ibuture-shipping-methods");
+  const change = methods.listeners.change[0];
+
+  const secondMethod = harness.selectShippingMethod("flat_rate:2");
+  const secondChange = change({ target: secondMethod });
+  await flush();
+  assert.equal(harness.shippingRequests.length, 2);
+
+  const latestMethod = harness.selectShippingMethod("flat_rate:1");
+  const latestChange = change({ target: latestMethod });
+  assert.equal(harness.shippingRequests.length, 2, "the next request waits for the active request");
+
+  harness.resolveShipping(1, {
+    success: true,
+    cart: { ...harness.cart, shipping_total: 8, total: 18 },
+    shipping_methods: [
+      { id: "flat_rate:1", name: "Standard", cost: "2.00" },
+      { id: "flat_rate:2", name: "Express", cost: "8.00" },
+    ],
+  });
+  await secondChange;
+  await flush();
+  assert.equal(harness.shippingRequests.length, 3);
+  assert.doesNotMatch(harness.getElement("#ibuture-checkout-totals").innerHTML, /18,00/);
+
+  harness.resolveShipping(2, {
+    success: true,
+    cart: { ...harness.cart, shipping_total: 2, total: 12 },
+    shipping_methods: [
+      { id: "flat_rate:1", name: "Standard", cost: "2.00" },
+      { id: "flat_rate:2", name: "Express", cost: "8.00" },
+    ],
+  });
+  await latestChange;
+
+  assert.deepEqual(harness.shippingRequests.map(({ body }) => body.shipping_method), [
+    "flat_rate:1", "flat_rate:2", "flat_rate:1",
+  ]);
+  assert.match(harness.getElement("#ibuture-checkout-totals").innerHTML, /12,00/);
+  assert.equal(methods.radios.find((radio) => radio.checked).value, "flat_rate:1");
+  assert.equal(harness.getElement("#ibuture-place-order").disabled, false);
+});
+
+test("shipping API failures block order placement until a later synchronization succeeds", async () => {
+  let failNextRequest = false;
+  const harness = createCheckoutHarness({
+    shippingHandler: ({ body, cart, response: makeResponse }) => {
+      if (failNextRequest) {
+        failNextRequest = false;
+        return makeResponse({ code: "shipping_unavailable" }, 500);
+      }
+      const shipping = body.shipping_method === "flat_rate:2" ? 5 : 0;
+      return makeResponse({
+        success: true,
+        cart: { ...cart, shipping_total: shipping, total: cart.subtotal + shipping },
+        shipping_methods: [
+          { id: "flat_rate:1", name: "Standard", cost: "0.00" },
+          { id: "flat_rate:2", name: "Express", cost: "5.00" },
+        ],
+      });
+    },
+  });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+  const methods = harness.getElement("#ibuture-shipping-methods");
+  const change = methods.listeners.change[0];
+  const placeOrder = harness.getElement("#ibuture-place-order").listeners.click[0];
+
+  failNextRequest = true;
+  await change({ target: harness.selectShippingMethod("flat_rate:2") });
+  assert.equal(harness.getElement("#ibuture-place-order").disabled, true);
+  assert.match(harness.getElement("#ibuture-checkout-error").textContent, /Versandkosten konnten nicht aktualisiert werden/);
+  await placeOrder();
+  assert.equal(harness.orderRequests.length, 0);
+
+  await change({ target: harness.selectShippingMethod("flat_rate:1") });
+  assert.equal(harness.getElement("#ibuture-place-order").disabled, false);
+  assert.equal(harness.getElement("#ibuture-checkout-error").hidden, true);
+  assert.equal(harness.getElement("#ibuture-shipping-methods").radios.find((radio) => radio.checked).value, "flat_rate:1");
+});
+
+test("shipping refresh preserves cart, coupon, fee, and selected payment data", async () => {
+  const harness = createCheckoutHarness({
+    cart: {
+      items_count: 1,
+      items: [{ name: "Test item", quantity: 1, line_total: "10.00" }],
+      subtotal: 10,
+      shipping_total: 0,
+      discount_total: 2,
+      applied_coupons: ["SAVE"],
+      tax_total: 0,
+      total: 9,
+      currency: "EUR",
+      fees: [{ name: "Handling", total: 1 }],
+    },
+    paymentMethods: [
+      { id: "cod", title: "Cash on delivery" },
+      { id: "bacs", title: "Bank transfer" },
+    ],
+    shippingHandler: ({ cart, response: makeResponse }) => makeResponse({
+      success: true,
+      cart: { ...cart, shipping_total: 3, total: 12 },
+      shipping_methods: [
+        { id: "flat_rate:1", name: "Standard", cost: "0.00" },
+        { id: "flat_rate:2", name: "Express", cost: "3.00" },
+      ],
+    }),
+  });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+  const paymentMethods = harness.getElement("#ibuture-payment-methods");
+  const selectedPayment = paymentMethods.radios.find((radio) => radio.value === "bacs");
+  selectedPayment.checked = true;
+  paymentMethods.listeners.change[0]({ target: selectedPayment });
+
+  await harness.getElement("#ibuture-shipping-methods").listeners.change[0]({
+    target: harness.selectShippingMethod("flat_rate:2"),
+  });
+
+  const summary = harness.getElement("#ibuture-checkout-totals").innerHTML;
+  assert.match(summary, /SAVE/);
+  assert.match(summary, /Handling/);
+  assert.match(summary, /12,00/);
+  assert.equal(harness.getElement("#ibuture-remove-coupon").hidden, false);
+  assert.equal(paymentMethods.radios.find((radio) => radio.checked).value, "bacs");
+  assert.equal(harness.getElement("#ibuture-checkout-items").innerHTML.includes("Test item"), true);
+});
+
+test("applying and removing a coupon revalidates the selected shipping method and server totals", async () => {
+  const methods = [
+    { id: "flat_rate:1", name: "Standard", cost: "2.00" },
+    { id: "flat_rate:2", name: "Express", cost: "7.00" },
+  ];
+  const calculateShipping = ({ body, cart, setCart, response: makeResponse }) => {
+    const shipping = body.shipping_method === "flat_rate:2" ? 7 : 2;
+    const nextCart = {
+      ...cart,
+      shipping_total: shipping,
+      total: cart.subtotal + shipping - cart.discount_total,
+    };
+    setCart(nextCart);
+    return makeResponse({ success: true, cart: nextCart, shipping_methods: methods });
+  };
+  const harness = createCheckoutHarness({
+    shippingMethods: methods,
+    shippingHandler: calculateShipping,
+    couponHandler: ({ url, body, cart, setCart, response: makeResponse }) => {
+      assert.equal(body.code, "SAVE");
+      const applied = url.endsWith("/apply-coupon");
+      const nextCart = {
+        ...cart,
+        discount_total: applied ? 3 : 0,
+        applied_coupons: applied ? ["SAVE"] : [],
+        total: cart.subtotal + cart.shipping_total - (applied ? 3 : 0),
+      };
+      setCart(nextCart);
+      return makeResponse({ success: true, cart: nextCart });
+    },
+  });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+  const shippingMethods = harness.getElement("#ibuture-shipping-methods");
+  await shippingMethods.listeners.change[0]({ target: harness.selectShippingMethod("flat_rate:2") });
+  const couponForm = harness.getElement("#ibuture-coupon-form");
+  const initialShippingRequestCount = harness.shippingRequests.length;
+  const initialSubtotal = 10;
+  const applyEvent = { currentTarget: couponForm, preventDefault() {} };
+
+  await couponForm.listeners.submit[0](applyEvent);
+
+  assert.equal(harness.couponRequests.length, 1);
+  assert.equal(harness.couponRequests[0].url.endsWith("/apply-coupon"), true);
+  assert.equal(harness.shippingRequests.length, initialShippingRequestCount + 1);
+  assert.equal(harness.shippingRequests.at(-1).body.shipping_method, "flat_rate:2");
+  assert.match(harness.getElement("#ibuture-checkout-totals").innerHTML, /14,00/);
+  assert.match(harness.getElement("#ibuture-checkout-totals").innerHTML, /SAVE/);
+  assert.equal(shippingMethods.radios.find((radio) => radio.checked).value, "flat_rate:2");
+  assert.equal(harness.getElement("#ibuture-place-order").disabled, false);
+  assert.equal(harness.getCart().total, initialSubtotal + 7 - 3);
+
+  const requestsBeforeRemove = harness.shippingRequests.length;
+  await harness.getElement("#ibuture-remove-coupon").listeners.click[0]();
+
+  assert.equal(harness.couponRequests.length, 2);
+  assert.equal(harness.couponRequests[1].url.endsWith("/remove-coupon"), true);
+  assert.equal(harness.shippingRequests.length, requestsBeforeRemove + 1);
+  assert.equal(harness.shippingRequests.at(-1).body.shipping_method, "flat_rate:2");
+  assert.match(harness.getElement("#ibuture-checkout-totals").innerHTML, /17,00/);
+  assert.doesNotMatch(harness.getElement("#ibuture-checkout-totals").innerHTML, /SAVE/);
+  assert.equal(shippingMethods.radios.find((radio) => radio.checked).value, "flat_rate:2");
+  assert.equal(harness.getElement("#ibuture-place-order").disabled, false);
+  assert.equal(harness.getCart().total, initialSubtotal + 7);
+});
+
+test("coupon succeeds but shipping revalidation fails: checkout keeps order blocked", async () => {
+  let rejectResync = false;
+  const harness = createCheckoutHarness({
+    couponHandler: ({ cart, setCart, response: makeResponse }) => {
+      const nextCart = { ...cart, discount_total: 1, applied_coupons: ["SAVE"], total: 9 };
+      setCart(nextCart);
+      return makeResponse({ success: true, cart: nextCart });
+    },
+    shippingHandler: ({ body, cart, setCart, response: makeResponse }) => {
+      if (rejectResync) {
+        rejectResync = false;
+        return makeResponse({ code: "shipping_unavailable" }, 500);
+      }
+      const nextCart = { ...cart, shipping_total: 0, total: cart.subtotal - cart.discount_total };
+      setCart(nextCart);
+      return makeResponse({
+        success: true,
+        cart: nextCart,
+        shipping_methods: [
+          { id: "flat_rate:1", name: "Standard", cost: "0.00" },
+          { id: "flat_rate:2", name: "Express", cost: "5.00" },
+        ],
+      });
+    },
+  });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+  rejectResync = true;
+
+  await harness.getElement("#ibuture-coupon-form").listeners.submit[0]({
+    currentTarget: harness.getElement("#ibuture-coupon-form"),
+    preventDefault() {},
+  });
+
+  assert.equal(harness.getElement("#ibuture-place-order").disabled, true);
+  assert.match(harness.getElement("#ibuture-checkout-error").textContent, /Versandkosten konnten nicht aktualisiert werden/);
+  await harness.getElement("#ibuture-place-order").listeners.click[0]();
+  assert.equal(harness.orderRequests.length, 0);
+
+  const selected = harness.selectShippingMethod("flat_rate:1");
+  await harness.getElement("#ibuture-shipping-methods").listeners.change[0]({ target: selected });
+  assert.equal(harness.getElement("#ibuture-place-order").disabled, false);
+  assert.equal(harness.getElement("#ibuture-checkout-error").hidden, true);
+});
+
+test("coupon API failure refreshes and resynchronizes shipping before allowing checkout", async () => {
+  const harness = createCheckoutHarness({
+    couponHandler: ({ response: makeResponse }) => makeResponse({ code: "coupon_invalid" }, 400),
+    shippingHandler: ({ body, cart, setCart, response: makeResponse }) => {
+      const nextCart = { ...cart, shipping_total: 2, total: cart.subtotal + 2 - cart.discount_total };
+      setCart(nextCart);
+      return makeResponse({
+        success: true,
+        cart: nextCart,
+        shipping_methods: [
+          { id: "flat_rate:1", name: "Standard", cost: "2.00" },
+          { id: "flat_rate:2", name: "Express", cost: "5.00" },
+        ],
+      });
+    },
+  });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+  const initialShippingRequests = harness.shippingRequests.length;
+
+  await harness.getElement("#ibuture-coupon-form").listeners.submit[0]({
+    currentTarget: harness.getElement("#ibuture-coupon-form"),
+    preventDefault() {},
+  });
+
+  assert.equal(harness.couponRequests.length, 1);
+  assert.equal(harness.shippingRequests.length, initialShippingRequests + 1);
+  assert.equal(harness.getElement("#ibuture-shipping-methods").radios.find((radio) => radio.checked).value, "flat_rate:1");
+  assert.equal(harness.getElement("#ibuture-place-order").disabled, false);
+  assert.match(harness.getElement("#ibuture-checkout-error").textContent, /Gutscheincode ist ungültig/);
+});
+
 test("mocked checkout validates and submits all fields once, then waits for server confirmation", async () => {
   const harness = createCheckoutHarness();
-  const { elements, requests, orderRequests } = harness;
+  const { elements, requests, orderRequests, shippingRequests } = harness;
   const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
   await flush();
   assert.equal(elements.get("#ibuture-checkout-content").hidden, false);
@@ -298,23 +655,24 @@ test("mocked checkout validates and submits all fields once, then waits for serv
   const placeOrder = elements.get("#ibuture-place-order").listeners.click[0];
   const customerForm = harness.getElement("#ibuture-customer-form");
   const shippingForm = harness.getElement("#ibuture-shipping-form");
+  const initialShippingRequests = shippingRequests.length;
   customerForm.valid = false;
   await placeOrder();
   assert.equal(customerForm.reportValidityCalls, 1);
-  assert.equal(requests.some(({ url }) => url.endsWith("/checkout/shipping")), false);
+  assert.equal(shippingRequests.length, initialShippingRequests);
 
   customerForm.valid = true;
   shippingForm.valid = false;
   await placeOrder();
   assert.equal(shippingForm.reportValidityCalls, 1);
-  assert.equal(requests.some(({ url }) => url.endsWith("/checkout/shipping")), false);
+  assert.equal(shippingRequests.length, initialShippingRequests);
 
   shippingForm.valid = true;
   const firstAttempt = placeOrder();
   await flush();
-  assert.equal(requests.filter(({ url }) => url.endsWith("/checkout/shipping")).length, 1);
-  const shippingRequest = requests.find(({ url }) => url.endsWith("/checkout/shipping"));
-  const shippingBody = JSON.parse(shippingRequest.options.body);
+  assert.equal(shippingRequests.length, initialShippingRequests + 1);
+  const shippingRequest = shippingRequests.at(-1);
+  const shippingBody = shippingRequest.body;
   assert.deepEqual({ ...shippingBody.billing }, {
     first_name: "Test", last_name: "Buyer", address_1: "Test Street 1", city: "Berlin",
     postcode: "10115", country: "DE", email: "buyer@example.test", phone: "123",
