@@ -1,5 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/de-de/",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/wp-json/ibuture/:path*",
