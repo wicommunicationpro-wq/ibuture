@@ -442,7 +442,7 @@ test("shipping API failures block order placement until a later synchronization 
   failNextRequest = true;
   await change({ target: harness.selectShippingMethod("flat_rate:2") });
   assert.equal(harness.getElement("#ibuture-place-order").disabled, true);
-  assert.match(harness.getElement("#ibuture-checkout-error").textContent, /Versandkosten konnten nicht aktualisiert werden/);
+  assert.equal(harness.getElement("#ibuture-checkout-error").textContent, "");
   await placeOrder();
   assert.equal(harness.orderRequests.length, 0);
 
@@ -600,7 +600,7 @@ test("coupon succeeds but shipping revalidation fails: checkout keeps order bloc
   });
 
   assert.equal(harness.getElement("#ibuture-place-order").disabled, true);
-  assert.match(harness.getElement("#ibuture-checkout-error").textContent, /Versandkosten konnten nicht aktualisiert werden/);
+  assert.equal(harness.getElement("#ibuture-checkout-error").textContent, "");
   await harness.getElement("#ibuture-place-order").listeners.click[0]();
   assert.equal(harness.orderRequests.length, 0);
 

@@ -6836,7 +6836,7 @@ first.parentNode.insertBefore(script, first);
       state.shippingMethod = shippingMethod;
       state.shippingSynced = false;
       $("#ibuture-place-order").disabled = true;
-      showError(strings.shippingSyncPending);
+      clearError();
 
       const sync = state.shippingSyncPromise.catch(() => {}).then(async () => {
         if (requestId !== state.shippingRequestId) return;
@@ -6874,7 +6874,7 @@ first.parentNode.insertBefore(script, first);
         if (requestId !== state.shippingRequestId) return;
         state.shippingSynced = false;
         $("#ibuture-place-order").disabled = true;
-        showError(strings.shippingSyncError);
+        clearError();
         return false;
       });
 
@@ -6908,7 +6908,7 @@ first.parentNode.insertBefore(script, first);
       } catch (_) {
         state.shippingSynced = false;
         $("#ibuture-place-order").disabled = true;
-        showError(strings.shippingSyncError);
+        clearError();
       }
     }
     function endCouponUpdate() {
@@ -6920,7 +6920,7 @@ first.parentNode.insertBefore(script, first);
       event.preventDefault();
       clearError();
       if (state.couponSubmitting || state.submitted) return;
-      if (!state.shippingSynced) { showError(strings.shippingSyncError); return; }
+      if (!state.shippingSynced) { clearError(); return; }
       const code = formData(event.currentTarget).code.trim();
       if (!code) { showError(strings.enterCoupon); return; }
       if (state.couponCode && state.couponCode.toLowerCase() === code.toLowerCase()) { showError(checkoutMessages.duplicateCoupon); return; }
@@ -6942,7 +6942,7 @@ first.parentNode.insertBefore(script, first);
     async function removeCoupon() {
       clearError();
       if (state.couponSubmitting || state.submitted) return;
-      if (!state.shippingSynced) { showError(strings.shippingSyncError); return; }
+      if (!state.shippingSynced) { clearError(); return; }
       beginCouponUpdate();
       const button = $("#ibuture-remove-coupon");
       button.disabled = true;
@@ -7020,7 +7020,7 @@ first.parentNode.insertBefore(script, first);
       const shippingMethod = selectedShipping.value;
       const paymentMethod = selectedPayment.value;
       if (!state.shippingSynced || state.shippingMethod !== shippingMethod) {
-        showError(strings.shippingSyncError);
+        clearError();
         return;
       }
       const billing = { ...shippingData, ...customerData };
