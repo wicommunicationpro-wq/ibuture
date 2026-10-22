@@ -6659,6 +6659,11 @@ first.parentNode.insertBefore(script, first);
        ? `/${checkoutMarketPath}/collections/${collectionSlugs[checkoutLocale] || collectionSlugs.fr}/`
        : "/fr/collections/tous-les-aspirateurs/";
      const API = "/wp-json/ibuture/v1";
+     const DIRECT_PRODUCT = {
+       slug: "buture-vc90-cordless-vacuum-cleaner",
+       shopifyVariantId: "47108090527999",
+       localizedName: "Buture VC90 Akku-Staubsauger"
+     };
     const state = { nonce: null, checkout: null, shippingMethod: "", paymentMethod: "", idempotencyKey: null, couponCode: "", couponSubmitting: false, submitted: false };
      const $ = (selector) => document.querySelector(selector);
      const errorBox = $("#ibuture-checkout-error");
@@ -6717,6 +6722,56 @@ first.parentNode.insertBefore(script, first);
        try { payload = await response.json(); } catch (_) {}
        if (!response.ok) { const error = new Error(messageFor(response.status, payload)); error.status = response.status; error.payload = payload; throw error; }
        return payload;
+     }
+     async function addDirectProductFromLink() {
+       const url = new URL(window.location.href);
+       if (url.searchParams.get("buy_now") !== "vc90") return;
+
+       const productPayload = await request(`/products?slug=${encodeURIComponent(DIRECT_PRODUCT.slug)}&per_page=1&_=${Date.now()}`);
+       const matches = Array.isArray(productPayload.data)
+         ? productPayload.data.filter((product) => product.slug === DIRECT_PRODUCT.slug)
+         : [];
+       if (productPayload.success !== true || matches.length !== 1) throw new Error(strings.unavailable);
+
+       const product = matches[0];
+       const productId = Number(product.id);
+       if (!Number.isSafeInteger(productId) || productId < 1) throw new Error(strings.unavailable);
+
+       let variationId = 0;
+       if (product.type === "variable") {
+         const variations = Array.isArray(product.variations) ? product.variations : [];
+         const selected = variations.filter((variation) =>
+           String(variation.shopify_variant_id || "") === DIRECT_PRODUCT.shopifyVariantId ||
+           String(variation.id || "") === DIRECT_PRODUCT.shopifyVariantId
+         );
+         if (selected.length !== 1) throw new Error(strings.unavailable);
+         variationId = Number(selected[0].id);
+         if (!Number.isSafeInteger(variationId) || variationId < 1) throw new Error(strings.unavailable);
+       } else if (product.type !== "simple") {
+         throw new Error(strings.unavailable);
+       }
+
+       const cart = await request("/cart?_=" + Date.now());
+       const alreadyInCart = Array.isArray(cart.items) && cart.items.some((item) =>
+         Number(item.product_id) === productId && Number(item.variation_id || 0) === variationId
+       );
+       if (!alreadyInCart) {
+         const result = await request("/cart/add", {
+           method: "POST",
+           headers: { "Content-Type": "application/x-www-form-urlencoded" },
+           body: new URLSearchParams({
+             product_id: String(productId),
+             variation_id: String(variationId),
+             quantity: "1",
+             localized_name: DIRECT_PRODUCT.localizedName,
+             localized_locale: "de"
+           })
+         });
+         if (result.success !== true) throw new Error(strings.unavailable);
+       }
+
+       url.searchParams.delete("buy_now");
+       window.history.replaceState(window.history.state, "", url);
      }
      async function getNonce() {
       const payload = await request("/checkout/nonce?_=" + Date.now());
@@ -6783,6 +6838,41 @@ first.parentNode.insertBefore(script, first);
       if (!state.idempotencyKey) state.idempotencyKey = window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
       return state.idempotencyKey;
     }
+    function trackPurchaseConversion(orderPayload) {
+      const orderId = String(orderPayload.order_id ?? "");
+      const value = orderPayload.order_total;
+      const currency = orderPayload.currency;
+      if (!/^[1-9]\d*$/.test(orderId) || !Number.isSafeInteger(Number(orderId))) return;
+      if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return;
+      if (typeof currency !== "string" || !/^[A-Z]{3}$/.test(currency)) return;
+      if (typeof window.gtag !== "function") return;
+
+      const storageKey = `ibuture-google-ads-purchase-${orderId}`;
+      try {
+        if (window.localStorage.getItem(storageKey)) return;
+      } catch (_) {
+        console.warn("Google Ads purchase conversion skipped: browser storage is unavailable.");
+        return;
+      }
+
+      try {
+        window.gtag("event", "conversion", {
+          send_to: "AW-18526973909/1IovCP74jaUdENXfrIJF",
+          transaction_id: orderId,
+          value,
+          currency,
+        });
+      } catch (_) {
+        console.warn("Google Ads purchase conversion could not be queued.");
+        return;
+      }
+
+      try {
+        window.localStorage.setItem(storageKey, "sent");
+      } catch (_) {
+        console.warn("Google Ads purchase conversion was queued, but its deduplication marker could not be saved.");
+      }
+    }
     async function placeOrder() {
       clearError();
       if (state.submitted) return;
@@ -6835,6 +6925,7 @@ first.parentNode.insertBefore(script, first);
         $("#ibuture-checkout-success").hidden = false;
         const orderNumber = orderPayload.order_number || orderPayload.order_id;
         $("#ibuture-order-message").textContent = `${strings.thanks}${orderNumber ? `${strings.orderNumber}${orderNumber}` : ""}. ${strings.orderSaved}`;
+        trackPurchaseConversion(orderPayload);
       } catch (error) {
         state.submitted = false;
         setCheckoutControlsDisabled(false);
@@ -6844,6 +6935,7 @@ first.parentNode.insertBefore(script, first);
     async function init() {
       renderCountries();
       try {
+        await addDirectProductFromLink();
         await getNonce();
         await refreshCheckout();
         const itemsCount = Number(state.checkout.items_count ?? state.checkout.cart?.items_count ?? 0);

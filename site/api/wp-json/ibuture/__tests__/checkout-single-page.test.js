@@ -63,10 +63,14 @@ test("checkout controller parses as JavaScript and keeps the existing same-origi
   assert.match(controller, /fetch\(API \+ path, \{ credentials: "include"/);
 });
 
-function createCheckoutHarness() {
+function createCheckoutHarness(options = {}) {
   const elements = new Map();
   const requests = [];
   const orderRequests = [];
+  const historyReplacements = [];
+  const conversionEvents = [];
+  const conversionSuccessVisibility = [];
+  const storage = options.storage || new Map();
   class Element {
     constructor(selector) {
       this.selector = selector;
@@ -140,10 +144,27 @@ function createCheckoutHarness() {
       ],
     },
     window: {
-      location: { pathname: "/de-de/checkout/" },
+      location: {
+        pathname: "/de-de/checkout/",
+        href: options.href || "https://www.lbuture.com/de-de/checkout/",
+      },
+      history: {
+        state: null,
+        replaceState(_state, _title, url) { historyReplacements.push(String(url)); },
+      },
       IBUTURE_MARKET_HEADERS: () => ({ "X-IBUTURE-Market": "DE" }),
       crypto: { randomUUID: () => "mock-idempotency-key" },
+      localStorage: {
+        getItem(key) { return storage.has(key) ? storage.get(key) : null; },
+        setItem(key, value) { storage.set(key, String(value)); },
+      },
+      gtag: options.gtagDisabled ? undefined : (...args) => {
+        conversionEvents.push(args);
+        conversionSuccessVisibility.push(getElement("#ibuture-checkout-success").hidden === false);
+      },
     },
+    URL,
+    URLSearchParams,
     FormData: class {
       constructor(form) { this.form = form; }
       entries() {
@@ -152,8 +173,19 @@ function createCheckoutHarness() {
           : { first_name: "Test", last_name: "Buyer", address_1: "Test Street 1", city: "Berlin", postcode: "10115", country: "DE" });
       }
     },
-    fetch: async (url, options) => {
-      requests.push({ url, options });
+    fetch: async (url, requestOptions) => {
+      requests.push({ url, options: requestOptions });
+      if (url.includes("/products?slug=")) return response({
+        success: true,
+        data: [options.product || {
+          id: 123,
+          slug: "buture-vc90-cordless-vacuum-cleaner",
+          type: "variable",
+          variations: [{ id: 456, shopify_variant_id: "47108090527999" }],
+        }],
+      });
+      if (url.includes("/cart?")) return response({ success: true, items: [] });
+      if (url.endsWith("/cart/add")) return response({ success: true });
       if (url.includes("/checkout/nonce")) return response({ nonce: "mock-nonce" });
       if (url.endsWith("/checkout/order")) return new Promise((resolve, reject) => { orderRequests.push({ resolve, reject, options }); });
       if (url.includes("/checkout?_=")) return response(checkoutPayload());
@@ -174,7 +206,18 @@ function createCheckoutHarness() {
     getElement,
     requests,
     orderRequests,
-    resolveOrder(index = 0, payload = { success: true, order_id: 123 }) {
+    historyReplacements,
+    conversionEvents,
+    conversionSuccessVisibility,
+    storage,
+    resolveOrder(index = 0, payload = {
+      success: true,
+      order_id: 123,
+      order_total: 29.95,
+      currency: "EUR",
+      order_key: "must-not-be-sent",
+      email: "buyer@example.test",
+    }) {
       orderRequests[index].resolve(response(payload));
     },
     rejectOrder(index = 0, error = new Error("network failure")) {
@@ -182,6 +225,65 @@ function createCheckoutHarness() {
     },
   };
 }
+
+test("German direct link resolves the VC90 through WooCommerce and opens the existing checkout", async () => {
+  const harness = createCheckoutHarness({
+    href: "https://www.lbuture.com/de-de/checkout/?buy_now=vc90&campaign=spring",
+  });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+
+  const productRequest = harness.requests.find(({ url }) => url.includes("/products?slug="));
+  const cartRequest = harness.requests.find(({ url }) => url.includes("/cart?"));
+  const addRequest = harness.requests.find(({ url }) => url.endsWith("/cart/add"));
+  const nonceRequest = harness.requests.find(({ url }) => url.includes("/checkout/nonce"));
+  assert.ok(productRequest);
+  assert.ok(cartRequest);
+  assert.ok(addRequest);
+  assert.ok(nonceRequest);
+  assert.ok(harness.requests.indexOf(addRequest) < harness.requests.indexOf(nonceRequest));
+  assert.match(productRequest.url, /slug=buture-vc90-cordless-vacuum-cleaner/);
+  const addBody = new URLSearchParams(addRequest.options.body);
+  assert.equal(addBody.get("product_id"), "123");
+  assert.equal(addBody.get("variation_id"), "456");
+  assert.equal(addBody.get("quantity"), "1");
+  assert.equal(addBody.get("localized_locale"), "de");
+  assert.deepEqual(harness.historyReplacements, ["https://www.lbuture.com/de-de/checkout/?campaign=spring"]);
+  assert.equal(harness.getElement("#ibuture-checkout-content").hidden, false);
+});
+
+test("German direct link adds the real simple VC90 product without a variation", async () => {
+  const harness = createCheckoutHarness({
+    href: "https://www.lbuture.com/de-de/checkout/?buy_now=vc90",
+    product: {
+      id: 380,
+      slug: "buture-vc90-cordless-vacuum-cleaner",
+      type: "simple",
+      variations: [],
+    },
+  });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+
+  const productRequest = harness.requests.find(({ url }) => url.includes("/products?slug="));
+  const addRequest = harness.requests.find(({ url }) => url.endsWith("/cart/add"));
+  const nonceRequest = harness.requests.find(({ url }) => url.includes("/checkout/nonce"));
+
+  assert.ok(productRequest, "WooCommerce product lookup should run");
+  assert.ok(addRequest, "the simple VC90 should be added to the cart");
+  assert.ok(nonceRequest, "the existing checkout should continue loading");
+  assert.ok(harness.requests.indexOf(addRequest) < harness.requests.indexOf(nonceRequest));
+
+  const addBody = new URLSearchParams(addRequest.options.body);
+  assert.equal(addBody.get("product_id"), "380");
+  assert.equal(addBody.get("variation_id"), "0");
+  assert.equal(addBody.get("quantity"), "1");
+  assert.equal(addBody.get("localized_locale"), "de");
+  assert.deepEqual(harness.historyReplacements, [
+    "https://www.lbuture.com/de-de/checkout/"
+  ]);
+  assert.equal(harness.getElement("#ibuture-checkout-content").hidden, false);
+});
 
 test("mocked checkout validates and submits all fields once, then waits for server confirmation", async () => {
   const harness = createCheckoutHarness();
@@ -265,4 +367,98 @@ test("retry after an uncertain order response keeps the same idempotency key and
   await retry;
   assert.equal(elements.get("#ibuture-checkout-content").hidden, true);
   assert.equal(elements.get("#ibuture-checkout-success").hidden, false);
+});
+
+test("Google Ads purchase conversion follows valid order confirmation and sends only transaction data", async () => {
+  const harness = createCheckoutHarness();
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+
+  const placeOrder = harness.getElement("#ibuture-place-order").listeners.click[0];
+  const attempt = placeOrder();
+  await flush();
+  harness.resolveOrder();
+  await attempt;
+
+  assert.equal(harness.getElement("#ibuture-checkout-success").hidden, false);
+  assert.deepEqual(JSON.parse(JSON.stringify(harness.conversionEvents)), [[
+    "event",
+    "conversion",
+    {
+      send_to: "AW-18526973909/1IovCP74jaUdENXfrIJF",
+      transaction_id: "123",
+      value: 29.95,
+      currency: "EUR",
+    },
+  ]]);
+  assert.deepEqual(harness.conversionSuccessVisibility, [true]);
+});
+
+test("Google Ads purchase conversion is not sent after an unsuccessful API response", async () => {
+  const harness = createCheckoutHarness();
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+
+  const attempt = harness.getElement("#ibuture-place-order").listeners.click[0]();
+  await flush();
+  harness.resolveOrder(0, { success: false, order_id: 123, order_total: 29.95, currency: "EUR" });
+  await attempt;
+
+  assert.deepEqual(harness.conversionEvents, []);
+  assert.equal(harness.getElement("#ibuture-checkout-success").hidden, true);
+});
+
+test("Google Ads purchase conversion requires a valid order ID, amount, and currency", async (t) => {
+  const invalidOrders = [
+    { success: true, order_total: 29.95, currency: "EUR" },
+    { success: true, order_id: "invalid", order_total: 29.95, currency: "EUR" },
+    { success: true, order_id: 123, currency: "EUR" },
+    { success: true, order_id: 123, order_total: 29.95 },
+  ];
+
+  for (const payload of invalidOrders) {
+    await t.test(JSON.stringify(payload), async () => {
+      const harness = createCheckoutHarness();
+      const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+      await flush();
+
+      const attempt = harness.getElement("#ibuture-place-order").listeners.click[0]();
+      await flush();
+      harness.resolveOrder(0, payload);
+      await attempt;
+
+      assert.deepEqual(harness.conversionEvents, []);
+      assert.equal(harness.getElement("#ibuture-checkout-success").hidden, payload.order_id ? false : true);
+    });
+  }
+});
+
+test("Google Ads purchase conversion is deduplicated across checkout reloads", async () => {
+  const storage = new Map();
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
+    const harness = createCheckoutHarness({ storage });
+    await flush();
+
+    const attempt = harness.getElement("#ibuture-place-order").listeners.click[0]();
+    await flush();
+    harness.resolveOrder();
+    await attempt;
+
+    assert.equal(harness.conversionEvents.length, attemptIndex === 0 ? 1 : 0);
+  }
+});
+
+test("missing gtag does not block the order confirmation", async () => {
+  const harness = createCheckoutHarness({ gtagDisabled: true });
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  await flush();
+
+  const attempt = harness.getElement("#ibuture-place-order").listeners.click[0]();
+  await flush();
+  harness.resolveOrder();
+  await attempt;
+
+  assert.equal(harness.getElement("#ibuture-checkout-success").hidden, false);
+  assert.deepEqual(harness.conversionEvents, []);
 });

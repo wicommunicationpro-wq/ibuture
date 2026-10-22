@@ -367,6 +367,88 @@ class IBUTURE_Email_BACS_Instructions extends WC_Email {
         </p>
 
         <?php
+        $order_number = $order->get_order_number();
+        $mailto_body = rawurlencode(
+            sprintf(
+                'Guten Tag, ich habe die Zahlung für die Bestellung Nr. %1$s bereits vorgenommen. Verwendungszweck der Überweisung: %1$s.',
+                $order_number
+            )
+        );
+        $mailto_url = 'mailto:official@lbuture.com?subject='
+            . rawurlencode( 'Zahlung bereits erfolgt' )
+            . '&body=' . $mailto_body;
+        ?>
+        <h2><?php esc_html_e( 'Wichtiger Hinweis', 'ibuture-bacs-email-candidate' ); ?></h2>
+        <p>
+            <?php
+            printf(
+                esc_html__(
+                    'Ihre Bestellung wird bearbeitet, sobald Ihre Zahlung eingegangen ist. Bitte geben Sie die Bestellnummer %1$s als Verwendungszweck Ihrer Überweisung an, damit wir Ihre Zahlung eindeutig zuordnen können.',
+                    'ibuture-bacs-email-candidate'
+                ),
+                esc_html( $order_number )
+            );
+            ?>
+        </p>
+        <p>
+            <?php
+            esc_html_e(
+                'Wenn Sie die Zahlung bereits vorgenommen haben, ',
+                'ibuture-bacs-email-candidate'
+            );
+            ?><a href="<?php echo esc_attr( $mailto_url ); ?>"><?php esc_html_e( 'klicken Sie hier', 'ibuture-bacs-email-candidate' ); ?></a><?php
+            esc_html_e(
+                ', um uns darüber zu informieren.',
+                'ibuture-bacs-email-candidate'
+            );
+            ?>
+        </p>
+
+        <h2><?php esc_html_e( 'Zusammenfassung Ihrer Bestellung', 'ibuture-bacs-email-candidate' ); ?></h2>
+        <p>
+            <strong><?php esc_html_e( 'Bestellnummer:', 'ibuture-bacs-email-candidate' ); ?></strong>
+            <?php echo esc_html( $order_number ); ?>
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th><?php esc_html_e( 'Produkt', 'ibuture-bacs-email-candidate' ); ?></th>
+                    <th><?php esc_html_e( 'Menge', 'ibuture-bacs-email-candidate' ); ?></th>
+                    <th><?php esc_html_e( 'Gesamtpreis', 'ibuture-bacs-email-candidate' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ( $order->get_items() as $item ) : ?>
+                    <tr>
+                        <td><?php echo esc_html( $item->get_name() ); ?></td>
+                        <td><?php echo esc_html( $item->get_quantity() ); ?></td>
+                        <td><?php echo wp_kses_post( $order->get_formatted_line_subtotal( $item ) ); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="2"><?php esc_html_e( 'Zwischensumme', 'ibuture-bacs-email-candidate' ); ?></th>
+                    <td><?php echo wp_kses_post( $order->get_subtotal_to_display() ); ?></td>
+                </tr>
+                <tr>
+                    <th colspan="2"><?php esc_html_e( 'Versandkosten', 'ibuture-bacs-email-candidate' ); ?></th>
+                    <td><?php echo wp_kses_post( $order->get_shipping_to_display() ); ?></td>
+                </tr>
+                <?php if ( $order->get_discount_total() > 0 ) : ?>
+                    <tr>
+                        <th colspan="2"><?php esc_html_e( 'Rabatt', 'ibuture-bacs-email-candidate' ); ?></th>
+                        <td><?php echo wp_kses_post( $order->get_discount_to_display() ); ?></td>
+                    </tr>
+                <?php endif; ?>
+                <tr>
+                    <th colspan="2"><?php esc_html_e( 'Gesamtsumme', 'ibuture-bacs-email-candidate' ); ?></th>
+                    <td><?php echo wp_kses_post( wc_price( $order->get_total(), array( 'currency' => $order->get_currency() ) ) ); ?></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <?php
         do_action( 'woocommerce_email_footer', $this );
 
         return ob_get_clean();
@@ -425,6 +507,52 @@ class IBUTURE_Email_BACS_Instructions extends WC_Email {
         }
 
         $text .= __( 'Ihre Bestellung wird nach Eingang und Bestätigung der Zahlung bearbeitet.', 'ibuture-bacs-email-candidate' ) . "\n";
+
+        $order_number = $order->get_order_number();
+        $text .= "\n" . __( 'Wichtiger Hinweis', 'ibuture-bacs-email-candidate' ) . "\n";
+        $text .= sprintf(
+            __(
+                'Ihre Bestellung wird bearbeitet, sobald Ihre Zahlung eingegangen ist. Bitte geben Sie die Bestellnummer %1$s als Verwendungszweck Ihrer Überweisung an, damit wir Ihre Zahlung eindeutig zuordnen können.',
+                'ibuture-bacs-email-candidate'
+            ),
+            $order_number
+        ) . "\n\n";
+        $text .= sprintf(
+            __(
+                'Wenn Sie die Zahlung bereits vorgenommen haben, klicken Sie hier, um uns darüber zu informieren: %s',
+                'ibuture-bacs-email-candidate'
+            ),
+            'mailto:official@lbuture.com?subject='
+                . rawurlencode( 'Zahlung bereits erfolgt' )
+                . '&body='
+                . rawurlencode(
+                    sprintf(
+                        'Guten Tag, ich habe die Zahlung für die Bestellung Nr. %1$s bereits vorgenommen. Verwendungszweck der Überweisung: %1$s.',
+                        $order_number
+                    )
+                )
+        ) . "\n\n";
+
+        $plain_text = static function ( $value ) {
+            return html_entity_decode(
+                wp_strip_all_tags( $value ),
+                ENT_QUOTES,
+                get_bloginfo( 'charset' )
+            );
+        };
+        $text .= __( 'Zusammenfassung Ihrer Bestellung', 'ibuture-bacs-email-candidate' ) . "\n";
+        $text .= __( 'Bestellnummer:', 'ibuture-bacs-email-candidate' ) . ' ' . $order_number . "\n\n";
+        foreach ( $order->get_items() as $item ) {
+            $text .= __( 'Produkt:', 'ibuture-bacs-email-candidate' ) . ' ' . $single_line( $item->get_name() ) . "\n";
+            $text .= __( 'Menge:', 'ibuture-bacs-email-candidate' ) . ' ' . $single_line( $item->get_quantity() ) . "\n";
+            $text .= __( 'Gesamtpreis:', 'ibuture-bacs-email-candidate' ) . ' ' . $plain_text( $order->get_formatted_line_subtotal( $item ) ) . "\n\n";
+        }
+        $text .= __( 'Zwischensumme:', 'ibuture-bacs-email-candidate' ) . ' ' . $plain_text( $order->get_subtotal_to_display() ) . "\n";
+        $text .= __( 'Versandkosten:', 'ibuture-bacs-email-candidate' ) . ' ' . $plain_text( $order->get_shipping_to_display() ) . "\n";
+        if ( $order->get_discount_total() > 0 ) {
+            $text .= __( 'Rabatt:', 'ibuture-bacs-email-candidate' ) . ' ' . $plain_text( $order->get_discount_to_display() ) . "\n";
+        }
+        $text .= __( 'Gesamtsumme:', 'ibuture-bacs-email-candidate' ) . ' ' . $plain_text( wc_price( $order->get_total(), array( 'currency' => $order->get_currency() ) ) ) . "\n";
 
         return $text;
     }
