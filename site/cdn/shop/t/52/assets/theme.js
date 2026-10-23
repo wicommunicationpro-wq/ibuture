@@ -185,7 +185,7 @@ const CART_DRAWER_I18N={
   pl:{emptyTitle:"Twój koszyk jest pusty",continueShopping:"Kontynuuj zakupy",title:"Twój koszyk",subtotal:"Suma częściowa",viewCart:"Zobacz koszyk"},
   en:{emptyTitle:"Your cart is empty",continueShopping:"Continue shopping",title:"Your cart",subtotal:"Subtotal",viewCart:"View cart"}
 };
-const CART_ROUTE_BY_ROOT={"/fr-nl/":"/fr-nl/cart/","/fr/":"/fr/cart/","/de/":"/de/cart/","/de-nl/":"/de/cart/","/it/":"/it/cart/","/it-nl/":"/it/cart/","/es/":"/es/cart/","/es-nl/":"/es/cart/","/pl/":"/pl/cart/","/pl-nl/":"/pl/cart/"};
+const CART_ROUTE_BY_ROOT={"/fr-nl/":"/fr-nl/cart/","/fr/":"/fr/cart/","/de/":"/de/cart/","/de-nl/":"/de/cart/","/de-de/":"/de-de/cart/","/it/":"/it/cart/","/it-nl/":"/it/cart/","/es/":"/es/cart/","/es-nl/":"/es/cart/","/pl/":"/pl/cart/","/pl-nl/":"/pl/cart/"};
 const COLLECTIONS_ROUTE_BY_ROOT={"/fr-nl/":"/fr/collections/all/","/fr/":"/fr/collections/all/","/de/":"/de/collections/all/","/de-nl/":"/de/collections/all/","/it/":"/it/collections/all/","/it-nl/":"/it/collections/all/","/es/":"/es/collections/all/","/es-nl/":"/es/collections/all/","/pl/":"/pl/collections/all/","/pl-nl/":"/pl/collections/all/"};
 const CART_ROUTE_BY_LOCALE={fr:"/fr/cart/",de:"/de/cart/",it:"/it/cart/",es:"/es/cart/",pl:"/pl/cart/"};
 const cartUrl=CART_ROUTE_BY_ROOT[cartRoot]||CART_ROUTE_BY_LOCALE[cartLocale]||"";
