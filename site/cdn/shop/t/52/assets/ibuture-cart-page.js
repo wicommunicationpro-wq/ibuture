@@ -128,7 +128,11 @@
 
   if (title) title.textContent = text.title;
   if (emptyTitle) emptyTitle.textContent = text.empty;
-  if (continueLink) continueLink.href = collectionRoutes[locale];
+  if (continueLink) {
+    continueLink.href = pathLocale === "pl-pl"
+      ? "/pl-pl/collections/wszystkie-odkurzacze/"
+      : collectionRoutes[locale];
+  }
   if (continueLabel) continueLabel.textContent = text.continueShopping;
   loading.textContent = text.loading;
 

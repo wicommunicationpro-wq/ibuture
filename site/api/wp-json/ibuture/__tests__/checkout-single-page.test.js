@@ -743,7 +743,7 @@ test("Google Ads purchase conversion follows valid order confirmation and sends 
     "event",
     "conversion",
     {
-      send_to: "AW-18526973909/1IovCP74jaUdENXfrIJF",
+      send_to: "AW-18536733708/bLsyCLza3qodEIy4gIdF",
       transaction_id: "123",
       value: 29.95,
       currency: "EUR",
